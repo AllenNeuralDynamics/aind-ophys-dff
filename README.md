@@ -1,3 +1,3 @@
-# aind-capsule-template
+# aind-ophys-dff
 
-Basic structure of a capsule to be customized as needed.
+Ophys-etl dff capsule

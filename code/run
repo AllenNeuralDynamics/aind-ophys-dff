@@ -2,5 +2,6 @@
 set -ex
 
 # This is the master script for the capsule. When you click "Reproducible Run", the code in this file will execute.
+source activate ophys_etl
 python -m dff_utils
 python -m ophys_etl.modules.dff --input_json /data/input.json

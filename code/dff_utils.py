@@ -24,7 +24,7 @@ def make_output_directory(output_dir: str, experiment_id: str=None) -> str:
     else:
         output_dir = os.path.join(output_dir)
     os.makedirs(output_dir, exist_ok=True)
-    return output_dir
+    return Path(output_dir)
             
             
 if __name__ == "__main__":

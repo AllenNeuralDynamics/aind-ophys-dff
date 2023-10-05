@@ -36,7 +36,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
-    neuropil_trace_fp = [i for  i in list(input_dir.glob("*/*")) if "neuropil_traces.h5" in str(i)][0]
+    neuropil_trace_fp = [i for  i in list(input_dir.glob("*/*")) if "neuropil_correction.h5" in str(i)][0]
     motion_corrected_fn = [i for i in list(input_dir.glob("*/*")) if "registered.h5" in str(i)][0]
     experiment_id = motion_corrected_fn.name.split("_")[0]
     output_dir = make_output_directory(output_dir, experiment_id)

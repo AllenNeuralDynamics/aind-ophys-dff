@@ -159,10 +159,10 @@ class DffJob(ArgSchemaParser):
 
         self.logger.info("Dff traces complete.")
 
-        self.output({
-            "output_file": self.args["output_file"],
-            "created_at": int(time.time())
-            }, indent=2)
+        #self.output({
+        #    "output_file": self.args["output_file"],
+        #    "created_at": int(time.time())
+        #    }, indent=2)
 
 
 if __name__ == "__main__":    # pragma: nocover

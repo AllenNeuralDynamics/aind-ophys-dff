@@ -160,7 +160,6 @@ class DffJob(ArgSchemaParser):
         self.logger.info("Dff traces complete.")
 
 
-
 if __name__ == "__main__":    # pragma: nocover
     dff_job = DffJob()
     dff_job.run()

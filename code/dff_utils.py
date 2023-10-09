@@ -48,6 +48,7 @@ if __name__ == "__main__":
         "input_file": str(neuropil_trace_fp),
         "output_file": str(output_dir / "dff.h5"),
         "movie_frame_rate_hz": frame_rate,
+        "output_json": str(output_dir / "output.json")
     }
 
     with open(input_dir / "input.json", "w") as j:

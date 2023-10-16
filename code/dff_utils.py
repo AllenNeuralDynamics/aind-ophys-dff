@@ -53,3 +53,4 @@ if __name__ == "__main__":
 
     with open(input_dir / "input.json", "w") as j:
         json.dump(input_data, j, indent=2)
+    copy_data_to_results(motion_corrected_fn.name, output_dir)

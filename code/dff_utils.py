@@ -2,7 +2,7 @@ import os
 import argparse
 import json
 from pathlib import Path
-
+import glob
 
 def make_output_directory(output_dir: str, experiment_id: str=None) -> str:
     """Creates the output directory if it does not exist

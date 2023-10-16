@@ -25,7 +25,21 @@ def make_output_directory(output_dir: str, experiment_id: str=None) -> str:
         output_dir = os.path.join(output_dir)
     os.makedirs(output_dir, exist_ok=True)
     return Path(output_dir)
-            
+
+def copy_data_to_results(input_dir: str, output_dir: str) -> None:
+    """Copy all data from the data directory to the results directory
+    
+    Args:
+        input_dir (str): path to data directory
+        output_dir (str): path to results directory
+    """
+    files = glob.glob(f"{input_dir}/*")
+    for f in files:
+        try:
+            shutil.copy(f, output_dir)
+        except shutil.SameFileError:
+            pass
+
             
 if __name__ == "__main__":
     # Generate input json

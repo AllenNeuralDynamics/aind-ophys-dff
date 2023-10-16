@@ -39,7 +39,7 @@ def copy_data_to_results(input_dir: str, output_dir: str) -> None:
     for f in files:
         try:
             shutil.copy(f, output_dir)
-        except shutil.SameFileError:
+        except (shutil.SameFileError, IsADirectoryError):
             pass
 
             
@@ -69,4 +69,4 @@ if __name__ == "__main__":
 
     with open(input_dir / "input.json", "w") as j:
         json.dump(input_data, j, indent=2)
-    copy_data_to_results(motion_corrected_fn.name, output_dir)
+    copy_data_to_results(motion_corrected_fn.parent, output_dir)

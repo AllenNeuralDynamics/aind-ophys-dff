@@ -7,5 +7,4 @@ ARG GIT_ACCESS_TOKEN
 COPY git-askpass /
 
 RUN pip3 install -U --no-cache-dir \
-    aind-ophys-utils \
-    h5py
+    aind-ophys-utils 

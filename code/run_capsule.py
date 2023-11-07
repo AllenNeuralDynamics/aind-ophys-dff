@@ -74,5 +74,5 @@ if __name__ == "__main__":
         f.create_dataset("noise", data=noise)
         f.create_dataset("skewness", data=skewness)
         f.create_dataset("roi_names", data=roi_names)
-    # This will be removed when I update the metadata
+    # This will be removed when I update the metadata and clean up the copy mess
     copy_data_to_results(input_dir, output_dir)

@@ -56,13 +56,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
-    neuropil_trace_fp = [
-        i for i in list(input_dir.glob("*/*")) if "neuropil_correction.h5" in str(i)
-    ][0]
-    motion_corrected_fn = [i for i in list(input_dir.glob("*/*")) if "decrosstalk.h5" in str(i)][0]
+    neuropil_trace_fp = next(input_dir.glob("*/neuropil_correction.h5"))
+    motion_corrected_fn = next(input_dir.glob("*/decrosstalk.h5"))
     experiment_id = motion_corrected_fn.name.split("_")[0]
     output_dir = make_output_directory(output_dir, experiment_id)
-    process_json = [i for i in list(input_dir.glob("*/*")) if "processing.json" in str(i)][0]
+    process_json = next(input_dir.glob("*/process.json"))
     with h5.File(neuropil_trace_fp, "r") as f:
         neuropil_corrected = f["data"][()]
         roi_names = f["roi_names"][()]

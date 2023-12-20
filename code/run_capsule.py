@@ -40,7 +40,7 @@ def write_output_metadata(
             data_processes=[
                 DataProcess(
                     name=process_name,
-                    software_version=os.getenv("AIND_OPHYS_UTILS_REPO_COMMIT_SHA"),
+                    software_version=os.getenv("AIND_OPHYS_UTILS_VERSION"),
                     start_date_time=start_date_time,  # TODO: Add actual dt
                     end_date_time=dt.now(tz.utc),  # TODO: Add actual dt
                     input_location=str(input_fp),
@@ -112,9 +112,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
-    neuropil_trace_fp = next(input_dir.glob("*/neuropil_traces.h5"))
-    platform_json = next(input_dir.glob("*/*platform.json"))
-    experiment_id = platform_json.name.split("_")[0]
+    neuropil_trace_fp = next(input_dir.glob("*/neuropil_correction/neuropil_traces.h5"))
+    motion_corrected_fn = next(input_dir.glob("*/decrosstalk/*decrosstalk.h5"))
+    experiment_id = motion_corrected_fn.name.split("_")[0]
     output_dir = make_output_directory(output_dir, experiment_id)
     with h5.File(neuropil_trace_fp, "r") as f:
         neuropil_corrected = f["data"][()]

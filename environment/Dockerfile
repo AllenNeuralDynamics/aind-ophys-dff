@@ -7,4 +7,5 @@ ARG GIT_ACCESS_TOKEN
 COPY git-askpass /
 
 RUN pip3 install -U --no-cache-dir \
-    aind-ophys-utils 
+    aind-ophys-utils \
+    aind-data-schema==0.22.0

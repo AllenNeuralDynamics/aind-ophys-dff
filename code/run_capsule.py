@@ -116,6 +116,9 @@ if __name__ == "__main__":
     motion_corrected_fn = next(input_dir.glob("*/decrosstalk/*decrosstalk.h5"))
     experiment_id = motion_corrected_fn.name.split("_")[0]
     output_dir = make_output_directory(output_dir, experiment_id)
+    decrosstalk_path = output_dir.parent / "decrosstalk"
+    decrosstalk_path.mkdir(exist_ok=True)
+    shutil.copy(motion_corrected_fn, decrosstalk_path)
     process_json = next(input_dir.glob("*/processing.json"))
     shutil.copy(process_json, output_dir.parent)
     with h5.File(neuropil_trace_fp, "r") as f:
@@ -131,11 +134,7 @@ if __name__ == "__main__":
         f.create_dataset("roi_names", data=roi_names)
 
     write_output_metadata(
-        {
-            "skewness": skewness.tolist(),
-            "baseline": baseline.tolist(),
-            "noise": noise.tolist(),
-        },
+        {},
         ProcessName.DFF_ESTIMATION,
         str(neuropil_trace_fp),
         str(output_dir / "dff.h5"),

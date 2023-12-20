@@ -3,3 +3,6 @@ name: aind-ophys-dff
 description: Basic structure of a capsule to be customized as needed.
 authors:
 - name: AIND
+- name: Johannes Friedrich
+- name: Marina Garrett
+- name: Arielle Leon

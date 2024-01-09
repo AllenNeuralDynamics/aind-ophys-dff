@@ -112,7 +112,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
-    neuropil_trace_fp = next(input_dir.glob("*/trace_extraction/neuropil_traces.h5"))
+    neuropil_corrected_trace_fp = next(input_dir.glob("*/neuropil_correction/neuropil_correction.h5"))
     motion_corrected_fn = next(input_dir.glob("*/decrosstalk/*decrosstalk.h5"))
     experiment_id = motion_corrected_fn.name.split("_")[0]
     output_dir = make_output_directory(output_dir, experiment_id)
@@ -121,8 +121,8 @@ if __name__ == "__main__":
     shutil.copy(motion_corrected_fn, decrosstalk_path)
     process_json = next(input_dir.glob("*/processing.json"))
     shutil.copy(process_json, output_dir.parent)
-    with h5.File(neuropil_trace_fp, "r") as f:
-        neuropil_corrected = f["data"][()]
+    with h5.File(neuropil_corrected_trace_fp, "r") as f:
+        neuropil_corrected = f["FC"][()]
         roi_names = f["roi_names"][()]
     dff_traces, baseline, noise = dff.dff(neuropil_corrected)
     skewness = skew(dff_traces, axis=1)

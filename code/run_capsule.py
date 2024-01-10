@@ -136,7 +136,7 @@ if __name__ == "__main__":
     write_output_metadata(
         {},
         ProcessName.DFF_ESTIMATION,
-        str(neuropil_trace_fp),
+        str(neuropil_corrected_trace_fp),
         str(output_dir / "dff.h5"),
         start_time,
     )

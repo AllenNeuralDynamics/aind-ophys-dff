@@ -112,13 +112,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
-    neuropil_corrected_trace_fp = next(input_dir.glob("*/neuropil_correction/neuropil_correction.h5"))
-    motion_corrected_fn = next(input_dir.glob("*/decrosstalk/*decrosstalk.h5"))
-    experiment_id = motion_corrected_fn.name.split("_")[0]
+    neuropil_dir = next(input_dir.glob("*/neuropil_correction"))
+    experiment_id = neuropil_dir.parent.name
+    neuropil_corrected_trace_fp = next(neuropil_dir.glob("neuropil_correction.h5"))
+    try:
+        motion_corrected_fn = next(input_dir.glob(f"{experiment_id}_decrosstalk.h5"))
+    except StopIteration:
+        motion_corrected_fn = next(input_dir.glob(f"{experiment_id}_registered.h5"))
     output_dir = make_output_directory(output_dir, experiment_id)
-    decrosstalk_path = output_dir.parent / "decrosstalk"
-    decrosstalk_path.mkdir(exist_ok=True)
-    shutil.copy(motion_corrected_fn, decrosstalk_path)
     process_json = next(input_dir.glob("*/processing.json"))
     shutil.copy(process_json, output_dir.parent)
     with h5.File(neuropil_corrected_trace_fp, "r") as f:

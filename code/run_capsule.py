@@ -1,17 +1,18 @@
-import os
 import argparse
-from pathlib import Path
 import glob
-import shutil
-import aind_ophys_utils.dff as dff
-from scipy.stats import skew
-import h5py as h5
 import json
-from pathlib import Path
-from aind_data_schema.core.processing import Processing, DataProcess, ProcessName, PipelineProcess
-from typing import Union
+import os
+import shutil
 from datetime import datetime as dt
 from datetime import timezone as tz
+from pathlib import Path
+from typing import Union
+
+import aind_ophys_utils.dff as dff
+import h5py as h5
+from aind_data_schema.core.processing import (DataProcess, PipelineProcess,
+                                              Processing, ProcessName)
+from scipy.stats import skew
 
 
 def write_output_metadata(

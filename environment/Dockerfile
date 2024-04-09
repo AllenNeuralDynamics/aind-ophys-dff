@@ -11,5 +11,8 @@ COPY git-askpass /
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "vim"]
 RUN pip3 install -U --no-cache-dir \
+    torch --index-url https://download.pytorch.org/whl/cpu
+
+RUN pip3 install -U --no-cache-dir \
     aind-ophys-utils==0.0.7 \
     aind-data-schema==0.22.0

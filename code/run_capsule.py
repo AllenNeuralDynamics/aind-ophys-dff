@@ -106,7 +106,10 @@ if __name__ == "__main__":
     with h5.File(neuropil_corrected_trace_fp, "r") as f:
         neuropil_corrected = f["FC"][()]
         roi_names = f["roi_names"][()]
-    dff_traces, baseline, noise = dff.dff(neuropil_corrected)
+    if neuropil_corrected.size > 0:
+        dff_traces, baseline, noise = dff.dff(neuropil_corrected)
+    else:  # no ROIs detected
+        dff_traces, baseline, noise = neuropil_corrected, neuropil_corrected, []
     skewness = skew(dff_traces, axis=1)
     with h5.File(output_dir / "dff.h5", "w") as f:
         f.create_dataset("data", data=dff_traces)

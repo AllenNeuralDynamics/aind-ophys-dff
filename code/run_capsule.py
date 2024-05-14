@@ -98,8 +98,6 @@ if __name__ == "__main__":
     experiment_id = neuropil_dir.parent.name
     neuropil_corrected_trace_fp = next(neuropil_dir.glob("neuropil_correction.h5"))
     output_dir = make_output_directory(output_dir, experiment_id)
-    process_json = next(input_dir.glob("*/processing.json"))
-    shutil.copy(process_json, output_dir.parent)
     with h5.File(neuropil_corrected_trace_fp, "r") as f:
         neuropil_corrected = f["FC"][()]
         roi_names = f["roi_names"][()]

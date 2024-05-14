@@ -43,12 +43,12 @@ def write_output_metadata(
             data_processes=[
                 DataProcess(
                     name=process_name,
-                    software_version="dfe5d9352fd2adb46d13ec22941935cb917dd47a", #TODO: FIX THIS!!
+                    software_version="b08fc9c735e3a9f120badbafb7b61417a4868273", #TODO: FIX THIS!!
                     start_date_time=start_date_time,
                     end_date_time=dt.now(tz.utc),
                     input_location=str(input_fp),
                     output_location=output_fp,
-                    code_url=(os.getenv("NP_EXTRACTION_URL")),
+                    code_url=(os.getenv("DFF_EXTRACTION_URL")),
                     parameters=metadata,
                 )
             ],
@@ -114,6 +114,7 @@ if __name__ == "__main__":
 
     write_output_metadata(
         {},
+        neuropil_dir,
         ProcessName.DFF_ESTIMATION,
         str(neuropil_corrected_trace_fp),
         str(output_dir / "dff.h5"),

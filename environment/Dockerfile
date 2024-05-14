@@ -8,6 +8,8 @@ ARG GIT_ASKPASS
 ARG GIT_ACCESS_TOKEN
 COPY git-askpass /
 
+ENV DFF_EXTRACTION_URL=https://github.com/AllenNeuralDynamics/aind-ophys-dff
+
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "vim"]
 RUN pip3 install -U --no-cache-dir \

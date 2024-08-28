@@ -101,7 +101,10 @@ if __name__ == "__main__":
     output_dir = make_output_directory(output_dir, experiment_id)
     with h5py.File(extraction_fp, "r") as f:
         traces = f["traces/corrected"][()]
-    dff_traces, baseline, noise = dff.dff(traces)
+    if len(traces):
+        dff_traces, baseline, noise = dff.dff(traces)
+    else:  # no ROIs detected
+        dff_traces, baseline, noise = traces, traces, []
     skewness = skew(dff_traces, axis=1)
     with h5py.File(output_dir / "dff.h5", "w") as f:
         f.create_dataset("data", data=dff_traces)

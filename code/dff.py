@@ -111,7 +111,6 @@ if __name__ == "__main__":
         f.create_dataset("baseline", data=baseline)
         f.create_dataset("noise", data=noise)
         f.create_dataset("skewness", data=skewness)
-        f.create_dataset("roi_names", data=np.arange(len(noise), dtype=np.int16))
 
     write_output_metadata(
         vars(args),
@@ -121,4 +120,3 @@ if __name__ == "__main__":
         output_dir / "dff.h5",
         start_time,
     )
-    # This will be removed when I update the metadata and clean up the copy mess

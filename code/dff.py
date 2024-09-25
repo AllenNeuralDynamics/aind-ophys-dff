@@ -1,14 +1,14 @@
 import argparse
 import json
 import os
-import shutil
 from datetime import datetime as dt
 from datetime import timezone as tz
 from pathlib import Path
 from typing import Union
 
 import aind_ophys_utils.dff as dff
-import h5py as h5
+import h5py
+import numpy as np
 from aind_data_schema.core.processing import (DataProcess, PipelineProcess,
                                               Processing, ProcessName)
 from scipy.stats import skew
@@ -38,8 +38,8 @@ def write_output_metadata(
     processing = Processing(
         processing_pipeline=PipelineProcess(
             processor_full_name="Multplane Ophys Processing Pipeline",
-            pipeline_url="https://codeocean.allenneuraldynamics.org/capsule/5472403/tree",
-            pipeline_version="0.3.0",
+            pipeline_url="https://codeocean.allenneuraldynamics.org/capsule/7026342/tree",
+            pipeline_version="0.5.0",
             data_processes=[
                 DataProcess(
                     name=process_name,
@@ -47,7 +47,7 @@ def write_output_metadata(
                     start_date_time=start_date_time,
                     end_date_time=dt.now(tz.utc),
                     input_location=str(input_fp),
-                    output_location=output_fp,
+                    output_location=str(output_fp),
                     code_url=(os.getenv("DFF_EXTRACTION_URL")),
                     parameters=metadata,
                 )
@@ -94,28 +94,29 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
-    neuropil_dir = next(input_dir.glob("*/neuropil_correction"))
-    experiment_id = neuropil_dir.parent.name
-    neuropil_corrected_trace_fp = next(neuropil_dir.glob("neuropil_correction.h5"))
+    extraction_dir = next(input_dir.glob("*/extraction"))
+    experiment_id = extraction_dir.parent.name
+    print(f"Calculating dF/F for ExperimentID {experiment_id}")
+    extraction_fp = next(extraction_dir.glob("extraction.h5"))
     output_dir = make_output_directory(output_dir, experiment_id)
-    with h5.File(neuropil_corrected_trace_fp, "r") as f:
-        neuropil_corrected = f["FC"][()]
-        roi_names = f["roi_names"][()]
-    dff_traces, baseline, noise = dff.dff(neuropil_corrected)
+    with h5py.File(extraction_fp, "r") as f:
+        traces = f["traces/corrected"][()]
+    if len(traces):
+        dff_traces, baseline, noise = dff.dff(traces)
+    else:  # no ROIs detected
+        dff_traces, baseline, noise = traces, traces, []
     skewness = skew(dff_traces, axis=1)
-    with h5.File(output_dir / "dff.h5", "w") as f:
+    with h5py.File(output_dir / "dff.h5", "w") as f:
         f.create_dataset("data", data=dff_traces)
         f.create_dataset("baseline", data=baseline)
         f.create_dataset("noise", data=noise)
         f.create_dataset("skewness", data=skewness)
-        f.create_dataset("roi_names", data=roi_names)
 
     write_output_metadata(
-        {},
-        neuropil_dir,
+        vars(args),
+        extraction_dir,
         ProcessName.DFF_ESTIMATION,
-        str(neuropil_corrected_trace_fp),
-        str(output_dir / "dff.h5"),
+        extraction_fp,
+        output_dir / "dff.h5",
         start_time,
     )
-    # This will be removed when I update the metadata and clean up the copy mess

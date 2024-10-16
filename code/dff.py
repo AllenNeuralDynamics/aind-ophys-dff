@@ -42,7 +42,7 @@ def write_output_metadata(
             data_processes=[
                 DataProcess(
                     name=process_name,
-                    software_version=os.getenv("VERSION", ""),!
+                    software_version=os.getenv("VERSION", ""),
                     start_date_time=start_date_time,
                     end_date_time=dt.now(),
                     input_location=str(input_fp),

@@ -1,0 +1,9 @@
+{
+	"version": 1,
+	"attached_datasets": [
+		{
+			"id": "577276fc-53d0-48a8-8335-80cb30bb8709",
+			"mount": "extraction_test1"
+		}
+	]
+}

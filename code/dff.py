@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 from datetime import datetime as dt
-from datetime import timezone as tz
 from pathlib import Path
 from typing import Union
 
@@ -38,14 +37,14 @@ def write_output_metadata(
     processing = Processing(
         processing_pipeline=PipelineProcess(
             processor_full_name="Multplane Ophys Processing Pipeline",
-            pipeline_url="https://codeocean.allenneuraldynamics.org/capsule/7026342/tree",
-            pipeline_version="0.5.0",
+            pipeline_url=os.getenv("PIPELINE_URL", ""),
+            pipeline_version=os.getenv("PIPELINE_VERSION", ""),
             data_processes=[
                 DataProcess(
                     name=process_name,
-                    software_version="b08fc9c735e3a9f120badbafb7b61417a4868273", #TODO: FIX THIS!!
+                    software_version=os.getenv("VERSION", ""),
                     start_date_time=start_date_time,
-                    end_date_time=dt.now(tz.utc),
+                    end_date_time=dt.now(),
                     input_location=str(input_fp),
                     output_location=str(output_fp),
                     code_url=(os.getenv("DFF_EXTRACTION_URL")),
@@ -90,7 +89,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o", "--output-dir", type=str, help="Output directory", default="/results/"
     )
-    start_time = dt.now(tz.utc)
+    start_time = dt.now()
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()

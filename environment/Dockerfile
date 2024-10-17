@@ -2,6 +2,10 @@ FROM registry.codeocean.allenneuraldynamics.org/codeocean/jupyterlab:3.4.4-minic
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+ENV PIPELINE_URL=""
+ENV PIPELINE_VERSION=""
+ENV VERSION="1.0"
+
 ARG GIT_ASKPASS
 ARG GIT_ACCESS_TOKEN
 COPY git-askpass /
@@ -15,4 +19,5 @@ RUN pip3 install -U --no-cache-dir \
 
 RUN pip3 install -U --no-cache-dir \
     aind-ophys-utils==0.0.7 \
-    aind-data-schema==0.22.0
+    aind-data-schema==0.22.0 \
+    pydantic==2.8.2 

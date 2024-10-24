@@ -105,7 +105,7 @@ if __name__ == "__main__":
     else:  # no ROIs detected
         dff_traces, baseline, noise = traces, traces, []
     skewness = skew(dff_traces, axis=1)
-    with h5py.File(output_dir / "dff.h5", "w") as f:
+    with h5py.File(output_dir / f"{experiment_id}_dff.h5", "w") as f:
         f.create_dataset("data", data=dff_traces)
         f.create_dataset("baseline", data=baseline)
         f.create_dataset("noise", data=noise)

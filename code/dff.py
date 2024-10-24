@@ -93,10 +93,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
-    extraction_dir = next(input_dir.glob("/extraction"))
+    extraction_dir = next(input_dir.glob("*/extraction"))
     experiment_id = extraction_dir.parent.name
     print(f"Calculating dF/F for ExperimentID {experiment_id}")
-    extraction_fp = next(extraction_dir.glob("/*extraction.h5"))
+    extraction_fp = next(extraction_dir.glob("*extraction.h5"))
     output_dir = make_output_directory(output_dir, experiment_id)
     with h5py.File(extraction_fp, "r") as f:
         traces = f["traces/corrected"][()]

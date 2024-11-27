@@ -2,9 +2,9 @@ FROM registry.codeocean.allenneuraldynamics.org/codeocean/jupyterlab:3.4.4-minic
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-ENV PIPELINE_URL="https://codeocean.allenneuraldynamics.org/capsule/6127754/tree"
+ENV PIPELINE_URL="https://codeocean.allenneuraldynamics.org/capsule/5619253/tree"
 ENV PIPELINE_VERSION="1.0"
-ENV VERSION="1.0"
+ENV VERSION="3.0"
 
 ARG GIT_ASKPASS
 ARG GIT_ACCESS_TOKEN

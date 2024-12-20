@@ -106,10 +106,10 @@ if __name__ == "__main__":
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
     data_description_data = get_metadata(input_dir, "data_description.json")
-    name = data_description_data["name"]
+    name = data_description_data.get("name", "")
     subject_data = get_metadata(input_dir, "subject.json")
-    subject_id = subject_data["subject_id"]
-    setup_logging("aind-ophys-dff", mouse_id=subject_id, session=name)
+    subject_id = subject_data.get("subject_id", "")
+    setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
     extraction_dir = next(input_dir.glob("*/extraction"))
     experiment_id = extraction_dir.parent.name
     logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")

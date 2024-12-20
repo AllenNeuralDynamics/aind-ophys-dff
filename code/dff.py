@@ -8,9 +8,7 @@ import logging
 
 import aind_ophys_utils.dff as dff
 import h5py
-import numpy as np
-from aind_data_schema.core.processing import (DataProcess, PipelineProcess,
-                                              Processing, ProcessName)
+from aind_data_schema.core.processing import DataProcess, ProcessName
 from scipy.stats import skew
 from aind_log_utils.log import setup_logging
 

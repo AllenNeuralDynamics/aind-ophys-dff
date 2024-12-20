@@ -1,16 +1,16 @@
 import argparse
 import json
+import logging
 import os
 from datetime import datetime as dt
 from pathlib import Path
 from typing import Union
-import logging
 
 import aind_ophys_utils.dff as dff
 import h5py
 from aind_data_schema.core.processing import DataProcess, ProcessName
-from scipy.stats import skew
 from aind_log_utils.log import setup_logging
+from scipy.stats import skew
 
 
 def write_data_process(
@@ -45,7 +45,6 @@ def write_data_process(
         output_dir = Path(output_fp).parent
     with open(output_dir / "data_process.json", "w") as f:
         json.dump(json.loads(data_proc.model_dump_json()), f, indent=4)
-
 
 
 def get_metadata(input_dir: Path, meta_type: str) -> dict:
@@ -96,7 +95,9 @@ def make_output_directory(output_dir: Path, experiment_id: str) -> str:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input-dir", type=str, help="Input directory", default="/data/")
+    parser.add_argument(
+        "-i", "--input-dir", type=str, help="Input directory", default="/data/"
+    )
     parser.add_argument(
         "-o", "--output-dir", type=str, help="Output directory", default="/results/"
     )

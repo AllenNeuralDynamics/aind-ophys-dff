@@ -32,7 +32,7 @@ def write_data_process(
         path to motion corrected movies
     """
     data_proc = DataProcess(
-        name=ProcessName.DFF_ESTIMATION,
+        name=ProcessName.DF_F_ESTIMATION,
         software_version=os.getenv("VERSION", ""),
         start_date_time=start_time.isoformat(),
         end_date_time=end_time.isoformat(),

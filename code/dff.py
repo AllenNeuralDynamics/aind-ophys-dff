@@ -31,6 +31,12 @@ def write_data_process(
         path to raw movies
     output_fp: str
         path to motion corrected movies
+    unique_id: str
+        unique identifier
+    start_time: dt
+        start time of processing
+    end_time: dt
+        end time of processing
     """
     data_proc = DataProcess(
         name=ProcessName.DF_F_ESTIMATION,

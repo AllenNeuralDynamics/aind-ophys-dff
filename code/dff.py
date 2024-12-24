@@ -17,6 +17,7 @@ def write_data_process(
     metadata: dict,
     input_fp: Union[str, Path],
     output_fp: Union[str, Path],
+    unique_id: str,
     start_time: dt,
     end_time: dt,
 ) -> None:
@@ -41,10 +42,11 @@ def write_data_process(
         code_url=(os.getenv("REPO_URL", "")),
         parameters=metadata,
     )
-    output_dir = output_fp.parent
     if isinstance(output_fp, str):
         output_dir = Path(output_fp).parent
-    with open(output_dir / "data_process.json", "w") as f:
+    else:
+        output_dir = output_fp.parent
+    with open(output_dir / f"{unique_id}_data_process.json", "w") as f:
         json.dump(json.loads(data_proc.model_dump_json()), f, indent=4)
 
 
@@ -133,6 +135,7 @@ if __name__ == "__main__":
         vars(args),
         extraction_fp,
         output_dir / "dff.h5",
+        experiment_id,
         start_time,
         dt.now(),
     )

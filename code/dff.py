@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 from datetime import datetime as dt
 from pathlib import Path
@@ -7,19 +8,18 @@ from typing import Union
 
 import aind_ophys_utils.dff as dff
 import h5py
-import numpy as np
-from aind_data_schema.core.processing import (DataProcess, PipelineProcess,
-                                              Processing, ProcessName)
+from aind_data_schema.core.processing import DataProcess, ProcessName
+from aind_log_utils.log import setup_logging
 from scipy.stats import skew
 
 
-def write_output_metadata(
+def write_data_process(
     metadata: dict,
-    process_json_dir: str,
-    process_name: str,
     input_fp: Union[str, Path],
     output_fp: Union[str, Path],
-    start_date_time: dt,
+    unique_id: str,
+    start_time: dt,
+    end_time: dt,
 ) -> None:
     """Writes output metadata to plane processing.json
 
@@ -28,36 +28,55 @@ def write_output_metadata(
     metadata: dict
         parameters from suite2p motion correction
     input_fp: str
-        path to data input
+        path to raw movies
     output_fp: str
-        path to data output
+        path to motion corrected movies
+    unique_id: str
+        unique identifier
+    start_time: dt
+        start time of processing
+    end_time: dt
+        end time of processing
     """
-    with open(Path(process_json_dir) / "processing.json", "r") as f:
-        proc_data = json.load(f)
-    processing = Processing(
-        processing_pipeline=PipelineProcess(
-            processor_full_name="Multplane Ophys Processing Pipeline",
-            pipeline_url=os.getenv("PIPELINE_URL", ""),
-            pipeline_version=os.getenv("PIPELINE_VERSION", ""),
-            data_processes=[
-                DataProcess(
-                    name=process_name,
-                    software_version=os.getenv("VERSION", ""),
-                    start_date_time=start_date_time,
-                    end_date_time=dt.now(),
-                    input_location=str(input_fp),
-                    output_location=str(output_fp),
-                    code_url=(os.getenv("DFF_EXTRACTION_URL")),
-                    parameters=metadata,
-                )
-            ],
-        )
+    data_proc = DataProcess(
+        name=ProcessName.DF_F_ESTIMATION,
+        software_version=os.getenv("VERSION", ""),
+        start_date_time=start_time.isoformat(),
+        end_date_time=end_time.isoformat(),
+        input_location=str(input_fp),
+        output_location=str(output_fp),
+        code_url=(os.getenv("REPO_URL", "")),
+        parameters=metadata,
     )
-    prev_processing = Processing(**proc_data)
-    prev_processing.processing_pipeline.data_processes.append(
-        processing.processing_pipeline.data_processes[0]
-    )
-    prev_processing.write_standard_file(output_directory=Path(output_fp).parent)
+    if isinstance(output_fp, str):
+        output_dir = Path(output_fp).parent
+    else:
+        output_dir = output_fp.parent
+    with open(output_dir / f"{unique_id}_df_f_data_process.json", "w") as f:
+        json.dump(json.loads(data_proc.model_dump_json()), f, indent=4)
+
+
+def get_metadata(input_dir: Path, meta_type: str) -> dict:
+    """Extracts metadata from processing and subject json files
+
+    Parameters
+    ----------
+    input_dir: Path
+        input directory
+    meta_type: str
+        type of metadata to extract
+
+    Returns
+    -------
+    metadata: dict
+        metadata
+    """
+    input_fp = next(input_dir.rglob(f"{meta_type}"), "")
+    if not input_fp:
+        raise FileNotFoundError(f"No {meta_type} file found in {input_dir}")
+    with open(input_fp, "r") as f:
+        metadata = json.load(f)
+    return metadata
 
 
 def make_output_directory(output_dir: Path, experiment_id: str) -> str:
@@ -85,7 +104,9 @@ def make_output_directory(output_dir: Path, experiment_id: str) -> str:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input-dir", type=str, help="Input directory", default="/data/")
+    parser.add_argument(
+        "-i", "--input-dir", type=str, help="Input directory", default="/data/"
+    )
     parser.add_argument(
         "-o", "--output-dir", type=str, help="Output directory", default="/results/"
     )
@@ -93,9 +114,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     input_dir = Path(args.input_dir).resolve()
     output_dir = Path(args.output_dir).resolve()
+    data_description_data = get_metadata(input_dir, "data_description.json")
+    name = data_description_data.get("name", "")
+    subject_data = get_metadata(input_dir, "subject.json")
+    subject_id = subject_data.get("subject_id", "")
+    setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
     extraction_dir = next(input_dir.glob("*/extraction"))
     experiment_id = extraction_dir.parent.name
-    print(f"Calculating dF/F for ExperimentID {experiment_id}")
+    logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")
     extraction_fp = next(extraction_dir.glob("*extraction.h5"))
     output_dir = make_output_directory(output_dir, experiment_id)
     with h5py.File(extraction_fp, "r") as f:
@@ -111,11 +137,11 @@ if __name__ == "__main__":
         f.create_dataset("noise", data=noise)
         f.create_dataset("skewness", data=skewness)
 
-    write_output_metadata(
+    write_data_process(
         vars(args),
-        extraction_dir,
-        ProcessName.DFF_ESTIMATION,
         extraction_fp,
         output_dir / "dff.h5",
+        experiment_id,
         start_time,
+        dt.now(),
     )

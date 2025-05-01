@@ -119,7 +119,7 @@ if __name__ == "__main__":
     subject_data = get_metadata(input_dir, "subject.json")
     subject_id = subject_data.get("subject_id", "")
     setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
-    extraction_dir = next(input_dir.glob("*/extraction"))
+    extraction_dir = next(input_dir.rglob("*/extraction"))
     experiment_id = extraction_dir.parent.name
     logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")
     extraction_fp = next(extraction_dir.glob("*extraction.h5"))

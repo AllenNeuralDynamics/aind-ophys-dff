@@ -136,7 +136,7 @@ def make_output_directory(output_dir: Path, experiment_id: str) -> str:
 
 
 if __name__ == "__main__":
-
+    start_time = dt.now()
     args = DFFSettings()
     input_dir = args.input_dir
     output_dir = args.output_dir
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     subject_data = get_metadata(input_dir, "subject.json")
     subject_id = subject_data.get("subject_id", "")
     setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
-    extraction_dir = next(input_dir.glob("*/extraction"))
+    extraction_dir = next(input_dir.rglob("*/extraction"))
     experiment_id = extraction_dir.parent.name
     logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")
     extraction_fp = next(extraction_dir.glob("*extraction.h5"))

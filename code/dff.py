@@ -171,9 +171,9 @@ if __name__ == "__main__":
         f.create_dataset("skewness", data=skewness)
 
     # Include settings in metadata
-    metadata = {**vars(args), **settings.dict()}
+    input_params = {**vars(args)}
     write_data_process(
-        metadata,
+        input_params,
         extraction_fp,
         output_dir / "dff.h5",
         experiment_id,

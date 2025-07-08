@@ -10,7 +10,40 @@ import aind_ophys_utils.dff as dff
 import h5py
 from aind_data_schema.core.processing import DataProcess, ProcessName
 from aind_log_utils.log import setup_logging
+from pydantic import Field
+from pydantic_settings import BaseSettings
 from scipy.stats import skew
+
+
+class DFFSettings(BaseSettings, cli_parse_args=True):
+    """Settings for DF/F calculation parameters"""
+
+    input_dir: Path = Field(
+        default="/data",
+        description="Input directory containing raw movies and metadata files",
+    )
+    output_dir: Path = Field(
+        default="/results", description="Output director where to save results to"
+    )
+    long_window: int = Field(
+        default=60,
+        description="Moving window size (in seconds) of the rolling percentile filter used to compute a rolling baseline",
+    )
+    short_window: float = Field(
+        default=3.333,
+        description="Moving window size (in seconds) of the median filter to compute the rolling median-filtered signal, which is subtracted from the input 'F' for noise_method=mad",
+    )
+    inactive_percentile: int = Field(
+        default=10,
+        description="Percentile value that defines the inactive frames used for calculating the baseline",
+    )
+    noise_method: str = Field(
+        default="mad",
+        description="Method for computing the noise, see ..signal_utils.noise_stdChoices: 'mad', 'fft', 'welch'",
+    )
+
+    class Config:
+        env_prefix = "DFF_"
 
 
 def write_data_process(
@@ -103,23 +136,16 @@ def make_output_directory(output_dir: Path, experiment_id: str) -> str:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-i", "--input-dir", type=str, help="Input directory", default="/data/"
-    )
-    parser.add_argument(
-        "-o", "--output-dir", type=str, help="Output directory", default="/results/"
-    )
     start_time = dt.now()
-    args = parser.parse_args()
-    input_dir = Path(args.input_dir).resolve()
-    output_dir = Path(args.output_dir).resolve()
+    args = DFFSettings()
+    input_dir = args.input_dir
+    output_dir = args.output_dir
     data_description_data = get_metadata(input_dir, "data_description.json")
     name = data_description_data.get("name", "")
     subject_data = get_metadata(input_dir, "subject.json")
     subject_id = subject_data.get("subject_id", "")
     setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
-    extraction_dir = next(input_dir.glob("*/extraction"))
+    extraction_dir = next(input_dir.rglob("*/extraction"))
     experiment_id = extraction_dir.parent.name
     logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")
     extraction_fp = next(extraction_dir.glob("*extraction.h5"))
@@ -127,7 +153,14 @@ if __name__ == "__main__":
     with h5py.File(extraction_fp, "r") as f:
         traces = f["traces/corrected"][()]
     if len(traces):
-        dff_traces, baseline, noise = dff.dff(traces)
+        # Pass settings parameters to the dff function
+        dff_traces, baseline, noise = dff.dff(
+            traces,
+            long_window=args.long_window,
+            short_window=args.short_window,
+            inactive_percentile=args.inactive_percentile,
+            noise_method=args.noise_method,
+        )
     else:  # no ROIs detected
         dff_traces, baseline, noise = traces, traces, []
     skewness = skew(dff_traces, axis=1)
@@ -137,8 +170,10 @@ if __name__ == "__main__":
         f.create_dataset("noise", data=noise)
         f.create_dataset("skewness", data=skewness)
 
+    # Include settings in metadata
+    input_params = {**vars(args)}
     write_data_process(
-        vars(args),
+        input_params,
         extraction_fp,
         output_dir / "dff.h5",
         experiment_id,

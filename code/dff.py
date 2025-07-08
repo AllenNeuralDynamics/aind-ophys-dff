@@ -17,31 +17,31 @@ from scipy.stats import skew
 
 class DFFSettings(BaseSettings, cli_parse_args=True):
     """Settings for DF/F calculation parameters"""
-    
+
     input_dir: Path = Field(
         default="/data",
-        description="Input directory containing raw movies and metadata files"
+        description="Input directory containing raw movies and metadata files",
     )
     output_dir: Path = Field(
-        default="/results",
-        description="Output director where to save results to"
+        default="/results", description="Output director where to save results to"
     )
-    long_window : int = Field(
-        default=60,
-        description="Moving window size (in seconds) of the rolling percentile filter used to compute a rolling baseline"
+    long_window: int = Field(
+        default=1800,
+        description="Moving window size (in seconds) of the rolling percentile filter used to compute a rolling baseline",
     )
-    short_window : float = Field(
+    short_window: float = Field(
         default=3.333,
-        description="Moving window size (in seconds) of the median filter to compute the rolling median-filtered signal, which is subtracted from the input 'F' for noise_method=mad"
+        description="Moving window size (in seconds) of the median filter to compute the rolling median-filtered signal, which is subtracted from the input 'F' for noise_method=mad",
     )
-    inactive_percentile : int = Field(
+    inactive_percentile: int = Field(
         default=10,
-        description="Percentile value that defines the inactive frames used for calculating the baseline"
+        description="Percentile value that defines the inactive frames used for calculating the baseline",
     )
-    noise_method : str = Field(
+    noise_method: str = Field(
         default="mad",
-        description="Method for computing the noise, see ..signal_utils.noise_stdChoices: 'mad', 'fft', 'welch'"
+        description="Method for computing the noise, see ..signal_utils.noise_stdChoices: 'mad', 'fft', 'welch'",
     )
+
     class Config:
         env_prefix = "DFF_"
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
             long_window=args.long_window,
             short_window=args.short_window,
             inactive_percentile=args.inactive_percentile,
-            noise_method=args.noise_method
+            noise_method=args.noise_method,
         )
     else:  # no ROIs detected
         dff_traces, baseline, noise = traces, traces, []

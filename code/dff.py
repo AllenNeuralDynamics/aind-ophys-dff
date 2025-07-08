@@ -136,7 +136,7 @@ def make_output_directory(output_dir: Path, experiment_id: str) -> str:
 
 
 if __name__ == "__main__":
-    star_time = dt.now()
+    start_time = dt.now()
     args = DFFSettings()
     input_dir = args.input_dir
     output_dir = args.output_dir

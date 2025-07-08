@@ -26,7 +26,7 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
         default="/results", description="Output director where to save results to"
     )
     long_window: int = Field(
-        default=1800,
+        default=60,
         description="Moving window size (in seconds) of the rolling percentile filter used to compute a rolling baseline",
     )
     short_window: float = Field(

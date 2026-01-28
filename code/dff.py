@@ -1,4 +1,3 @@
-import argparse
 import json
 import logging
 import os
@@ -10,11 +9,21 @@ from typing import Union
 import aind_ophys_utils.dff as dff
 import h5py
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from aind_data_schema.core.processing import DataProcess, ProcessName
+from aind_data_schema.core.quality_control import (
+    QCEvaluation,
+    QCMetric,
+    QCStatus,
+    Stage,
+    Status,
+)
+from aind_data_schema_models.modalities import Modality
 from aind_log_utils.log import setup_logging
+from aind_qcportal_schema.metric_value import CurationMetric
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
 from numpy.typing import NDArray
 from pydantic import Field
@@ -34,19 +43,23 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
     )
     long_window: int = Field(
         default=60,
-        description="Moving window size (in seconds) of the rolling percentile filter used to compute a rolling baseline",
+        description="Moving window size (in seconds) of the rolling percentile filter "
+        "used to compute a rolling baseline",
     )
     short_window: float = Field(
         default=3.333,
-        description="Moving window size (in seconds) of the median filter to compute the rolling median-filtered signal, which is subtracted from the input 'F' for noise_method=mad",
+        description="Moving window size (in seconds) of the median filter to compute the rolling "
+        "median-filtered signal, which is subtracted from the input 'F' for noise_method=mad",
     )
     inactive_percentile: int = Field(
         default=10,
-        description="Percentile value that defines the inactive frames used for calculating the baseline",
+        description="Percentile value that defines the inactive frames used for calculating "
+        "the baseline",
     )
     noise_method: str = Field(
         default="mad",
-        description="Method for computing the noise, see ..signal_utils.noise_stdChoices: 'mad', 'fft', 'welch'",
+        description="Method for computing the noise, see ..signal_utils.noise_std "
+        "Choices: 'mad', 'fft', 'welch'",
     )
 
     class Config:
@@ -119,22 +132,22 @@ def get_metadata(input_dir: Path, meta_type: str) -> dict:
     return metadata
 
 
-def make_output_directory(output_dir: Path, experiment_id: str) -> str:
+def make_output_directory(output_dir: Path, unique_id: str) -> str:
     """Creates the output directory if it does not exist
 
     Parameters
     ----------
     output_dir: Path
         output directory
-    experiment_id: str
-        experiment_id number
+    unique_id: str
+        unique identifier
 
     Returns
     -------
     output_dir: str
         output directory
     """
-    output_dir = output_dir / experiment_id
+    output_dir = output_dir / unique_id
     output_dir.mkdir(exist_ok=True)
     output_dir = output_dir / "dff"
     output_dir.mkdir(exist_ok=True)
@@ -175,7 +188,7 @@ def plot_dff(
     frame_rate: float,
     roi_id: int,
     fig_path: Union[str, Path],
-    experiment_id: str,
+    unique_id: str,
     zoom_duration: float = 60.0,
 ) -> None:
     """Plot raw and dF/F traces with optional zoomed insets.
@@ -198,8 +211,8 @@ def plot_dff(
         Region of interest identifier for labeling the plot
     fig_path : str or Path
         Directory path where the output PNG file will be saved
-    experiment_id: str
-        experiment_id number
+    unique_id: str
+        unique identifier
     zoom_duration : float, optional
         Duration in seconds for each zoomed inset window. If None or 0,
         creates a simpler 2-row layout without insets. If positive, creates
@@ -222,7 +235,7 @@ def plot_dff(
     - Middle: Center portion of recording
     - Last: End of recording (last zoom_duration seconds)
 
-    The saved filename follows the pattern: '{experiment_id}_{roi_id}_dff.png'
+    The saved filename follows the pattern: '{unique_id}_{roi_id}_dff.png'
     """
     t = np.arange(len(trace)) / frame_rate
     show_insets = zoom_duration is not None and zoom_duration > 0
@@ -231,7 +244,7 @@ def plot_dff(
     if show_insets:
         fig, ax = plt.subplots(3, 1, figsize=(12, 3.5))
     else:
-        fig, ax = plt.subplots(2, 1, figsize=(12, 2), sharex=True)
+        fig, ax = plt.subplots(2, 1, figsize=(12, 2.3), sharex=True)
 
     # Calculate row indices based on layout
     raw_idx = 0
@@ -239,7 +252,7 @@ def plot_dff(
     inset_idx = 1 if show_insets else None
 
     # Plot raw signal
-    ax[raw_idx].plot(t, trace, label=f"neuropil-corrected trace", c="C0")
+    ax[raw_idx].plot(t, trace, label="neuropil-corrected trace", c="C0", lw=0.5)
     ax[raw_idx].plot(t, baseline, label=r"fitted F$_0$", c="#F0E442")
     ax[raw_idx].legend(
         loc=(0.692, 0.78), ncol=2, borderpad=0.05
@@ -247,7 +260,7 @@ def plot_dff(
     ax[raw_idx].set_ylabel("F [a.u.]")
 
     # Plot dF/F signal
-    ax[dff_idx].plot(t, dff_trace * 100, label=f"$\\Delta$F/F", c="C2", zorder=-1)
+    ax[dff_idx].plot(t, dff_trace * 100, label=r"$\Delta$F/F", c="C2", zorder=-1, lw=0.5)
     ax[dff_idx].axhline(0, c="k", ls="--")
     ax[dff_idx].legend(
         loc=(0.923, 0.78), ncol=1, borderpad=0.05
@@ -282,7 +295,7 @@ def plot_dff(
             if np.any(mask):
                 t_zoom, dff_zoom = t[mask], dff_trace[mask] * 100
 
-                inset_ax.plot(t_zoom, dff_zoom, c="C2", linewidth=1.5)
+                inset_ax.plot(t_zoom, dff_zoom, c="C2", lw=0.5)
                 inset_ax.axhline(0, c="k", ls="--")
                 inset_ax.grid(True, alpha=0.8)
                 inset_ax.set_xlim(start_time, end_time)
@@ -323,12 +336,54 @@ def plot_dff(
     ax[0].set_title(f"cell_roi_id: {int(roi_id)}")
     plt.subplots_adjust(hspace=0.1, top=0.935, bottom=0.13, left=0.06, right=0.995)
     fig.savefig(
-        fig_path / f"{experiment_id}_{roi_id}_dff.png",
+        fig_path / f"{unique_id}_{roi_id}_dff.png",
         dpi=200,
         bbox_inches="tight",
         pad_inches=0.02,
     )
     plt.close(fig)
+
+
+def write_qc_evalutation(output_dir: Path, unique_id: str, N: int) -> None:
+    """Writes QC metrics to json file.
+
+    Parameters
+    ----------
+    output_dir: Path
+        output directory
+    unique_id: str
+        unique identifier
+    N: int
+        number of ROIs detected
+    """
+    cell_plots = dict()
+    for roi_id in range(N):
+        cell_plots[str(roi_id)] = {
+            "reference": f"{unique_id}/dff/plots/{unique_id}_{roi_id:0{len(str(N))}d}_dff.png"
+        }
+    curation = CurationMetric(curations=[json.dumps(cell_plots)])
+    metric = QCMetric(
+        name=f"{unique_id} dF/F",
+        description="dF/F baseline correction",
+        reference="",
+        status_history=[
+            QCStatus(evaluator="Automated", timestamp=dt.now(), status=Status.PASS)
+        ],
+        value=curation,
+    )
+
+    evaluation = QCEvaluation(
+        modality=Modality.from_abbreviation("pophys"),
+        stage=Stage.PROCESSING,
+        name="dF/F",
+        description="dF/F baseline correction for each ROI across all FOVs",
+        allow_failed_metrics=False,
+        metrics=[metric],
+        tags=["dff"],
+    )
+
+    with open(output_dir / f"{unique_id}_dff_evaluation.json", "w") as f:
+        json.dump(json.loads(evaluation.model_dump_json()), f, indent=4)
 
 
 if __name__ == "__main__":
@@ -342,10 +397,10 @@ if __name__ == "__main__":
     subject_id = subject_data.get("subject_id", "")
     setup_logging("aind-ophys-dff", subject_id=subject_id, asset_name=name)
     extraction_dir = next(input_dir.rglob("*/extraction"))
-    experiment_id = extraction_dir.parent.name
-    logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")
+    unique_id = extraction_dir.parent.name
+    logging.info(f"Calculating dF/F for ExperimentID {unique_id}")
     extraction_fp = next(extraction_dir.glob("*extraction.h5"))
-    output_dir = make_output_directory(output_dir, experiment_id)
+    output_dir = make_output_directory(output_dir, unique_id)
     with h5py.File(extraction_fp, "r") as f:
         traces = f["traces/corrected"][()]
     if len(traces):
@@ -360,7 +415,7 @@ if __name__ == "__main__":
     else:  # no ROIs detected
         dff_traces, baseline, noise = traces, traces, []
     skewness = skew(dff_traces, axis=1)
-    with h5py.File(output_dir / f"{experiment_id}_dff.h5", "w") as f:
+    with h5py.File(output_dir / f"{unique_id}_dff.h5", "w") as f:
         f.create_dataset("data", data=dff_traces)
         f.create_dataset("baseline", data=baseline)
         f.create_dataset("noise", data=noise)
@@ -372,7 +427,7 @@ if __name__ == "__main__":
         input_params,
         extraction_fp,
         output_dir / "dff.h5",
-        experiment_id,
+        unique_id,
         start_time,
         dt.now(),
     )
@@ -394,6 +449,8 @@ if __name__ == "__main__":
                     [frame_rate] * N,
                     [f"{n:0{len(str(N))}d}" for n in range(N)],
                     [fig_path] * N,
-                    [experiment_id] * N,
+                    [unique_id] * N,
                 ),
             )
+
+    write_qc_evalutation(output_dir, unique_id, N)

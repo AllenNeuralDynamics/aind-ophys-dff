@@ -3,13 +3,20 @@ import json
 import logging
 import os
 from datetime import datetime as dt
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Union
 
 import aind_ophys_utils.dff as dff
 import h5py
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
 from aind_data_schema.core.processing import DataProcess, ProcessName
 from aind_log_utils.log import setup_logging
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
+from numpy.typing import NDArray
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from scipy.stats import skew
@@ -135,6 +142,195 @@ def make_output_directory(output_dir: Path, experiment_id: str) -> str:
     return output_dir
 
 
+def get_frame_rate(session: dict) -> float:
+    """Attempt to pull frame rate from session.json
+    Raises ValueError if frame rate not in session.json
+
+    Parameters
+    ----------
+    session: dict
+        session metadata
+
+    Returns
+    -------
+    frame_rate: float
+        frame rate in Hz
+    """
+    frame_rate_hz = None
+    for i in session.get("data_streams", ""):
+        if i.get("ophys_fovs", ""):
+            frame_rate_hz = i["ophys_fovs"][0]["frame_rate"]
+            break
+    if frame_rate_hz is None:
+        raise ValueError("No frame rate found in session.json")
+    if isinstance(frame_rate_hz, str):
+        frame_rate_hz = float(frame_rate_hz)
+    return frame_rate_hz
+
+
+def plot_dff(
+    trace: NDArray,
+    baseline: NDArray,
+    dff_trace: NDArray,
+    frame_rate: float,
+    roi_id: int,
+    fig_path: Union[str, Path],
+    experiment_id: str,
+    zoom_duration: float = 60.0,
+) -> None:
+    """Plot raw and dF/F traces with optional zoomed insets.
+
+    Creates a multi-panel plot showing raw fluorescence signal and baseline-corrected
+    dF/F trace. When zoom_duration is specified, includes three zoomed inset plots
+    showing detailed views of the beginning, middle, and end of the recording session.
+
+    Parameters
+    ----------
+    trace : NDArray
+        Neuropil-corrected raw fluorescence trace
+    baseline : NDArray
+        Fitted baseline (F0) values
+    dff_trace : NDArray
+        Baseline-corrected dF/F trace (fractional units)
+    frame_rate : float
+        Frame rate in Hz
+    roi_id : int
+        Region of interest identifier for labeling the plot
+    fig_path : str or Path
+        Directory path where the output PNG file will be saved
+    experiment_id: str
+        experiment_id number
+    zoom_duration : float, optional
+        Duration in seconds for each zoomed inset window. If None or 0,
+        creates a simpler 2-row layout without insets. If positive, creates
+        a 3-row layout with inset zoom plots. Default is 60.0.
+
+    Returns
+    -------
+    None
+        Saves the plot as a PNG file to the specified path and closes the figure.
+
+    Notes
+    -----
+    The function creates different layouts based on zoom_duration:
+
+    - If zoom_duration is None or 0: 2 rows per channel (raw + dF/F)
+    - If zoom_duration > 0: 3 rows per channel (raw + insets + dF/F)
+
+    Inset windows show:
+    - First: Beginning of recording (0 to zoom_duration seconds)
+    - Middle: Center portion of recording
+    - Last: End of recording (last zoom_duration seconds)
+
+    The saved filename follows the pattern: '{experiment_id}_{roi_id}_dff.png'
+    """
+    t = np.arange(len(trace)) / frame_rate
+    show_insets = zoom_duration is not None and zoom_duration > 0
+
+    # Create figure and axes
+    if show_insets:
+        fig, ax = plt.subplots(3, 1, figsize=(12, 3.5))
+    else:
+        fig, ax = plt.subplots(2, 1, figsize=(12, 2), sharex=True)
+
+    # Calculate row indices based on layout
+    raw_idx = 0
+    dff_idx = 2 if show_insets else 1
+    inset_idx = 1 if show_insets else None
+
+    # Plot raw signal
+    ax[raw_idx].plot(t, trace, label=f"neuropil-corrected trace", c="C0")
+    ax[raw_idx].plot(t, baseline, label=r"fitted F$_0$", c="#F0E442")
+    ax[raw_idx].legend(
+        loc=(0.692, 0.78), ncol=2, borderpad=0.05
+    ).get_frame().set_linewidth(0.0)
+    ax[raw_idx].set_ylabel("F [a.u.]")
+
+    # Plot dF/F signal
+    ax[dff_idx].plot(t, dff_trace * 100, label=f"$\\Delta$F/F", c="C2", zorder=-1)
+    ax[dff_idx].axhline(0, c="k", ls="--")
+    ax[dff_idx].legend(
+        loc=(0.923, 0.78), ncol=1, borderpad=0.05
+    ).get_frame().set_linewidth(0.0)
+    ax[dff_idx].set_ylabel(r"$\Delta$F/F [%]", y=1 if show_insets else 0.5)
+
+    # Add insets if requested
+    if show_insets:
+        t_total = t[-1] - t[0]
+        zoom_windows = [
+            (t[0], t[0] + zoom_duration),
+            (
+                t[0] + (t_total - zoom_duration) / 2,
+                t[0] + (t_total + zoom_duration) / 2,
+            ),
+            (max(t[-1] - zoom_duration, t[0]), t[-1]),
+        ]
+
+        ax[inset_idx].axis("off")
+
+        for j, (start_time, end_time) in enumerate(zoom_windows):
+            inset_ax = inset_axes(
+                ax[inset_idx],
+                width="100%",
+                height="100%",
+                loc="center",
+                bbox_to_anchor=([0.01, 0.34, 0.67][j], 0.0, 0.32, 0.8),
+                bbox_transform=ax[inset_idx].transAxes,
+            )
+
+            mask = (t >= start_time) & (t <= end_time)
+            if np.any(mask):
+                t_zoom, dff_zoom = t[mask], dff_trace[mask] * 100
+
+                inset_ax.plot(t_zoom, dff_zoom, c="C2", linewidth=1.5)
+                inset_ax.axhline(0, c="k", ls="--")
+                inset_ax.grid(True, alpha=0.8)
+                inset_ax.set_xlim(start_time, end_time)
+
+                if len(dff_zoom) > 0:
+                    mi, ma = np.nanmin(dff_zoom), np.nanmax(dff_zoom)
+                    y_margin = 0.1 * (ma - mi)
+                    if ~np.isnan(y_margin):
+                        inset_ax.set_ylim(mi - y_margin, ma + y_margin)
+
+                inset_ax.set_title(
+                    f"{['First', 'Middle', 'Last'][j]} {zoom_duration:.0f}s",
+                    fontsize=10,
+                    y=0.94,
+                )
+                inset_ax.set_xticks([])
+                inset_ax.set_yticks([])
+
+                mark_inset(
+                    ax[dff_idx],
+                    inset_ax,
+                    loc1=1,
+                    loc2=3,
+                    fc="none",
+                    ec="#333333",
+                    alpha=0.8,
+                    linestyle="--",
+                    linewidth=1,
+                )
+
+    # Set x-limits and labels
+    tmin, tmax = np.nanmin(t), np.nanmax(t)
+    margin = (tmax - tmin) / 100
+    ax[raw_idx].set_xlim(tmin - margin, tmax + margin)
+    ax[dff_idx].set_xlim(tmin - margin, tmax + margin)
+    plt.setp(ax[raw_idx].get_xticklabels(), visible=False)
+    ax[dff_idx].set_xlabel("Time [s]")
+    ax[0].set_title(f"cell_roi_id: {int(roi_id)}")
+    plt.subplots_adjust(hspace=0.1, top=0.935, bottom=0.13, left=0.06, right=0.995)
+    fig.savefig(
+        fig_path / f"{experiment_id}_{roi_id}_dff.png",
+        dpi=200,
+        bbox_inches="tight",
+        pad_inches=0.02,
+    )
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     start_time = dt.now()
     args = DFFSettings()
@@ -144,7 +340,7 @@ if __name__ == "__main__":
     name = data_description_data.get("name", "")
     subject_data = get_metadata(input_dir, "subject.json")
     subject_id = subject_data.get("subject_id", "")
-    setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
+    setup_logging("aind-ophys-dff", subject_id=subject_id, asset_name=name)
     extraction_dir = next(input_dir.rglob("*/extraction"))
     experiment_id = extraction_dir.parent.name
     logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")
@@ -180,3 +376,24 @@ if __name__ == "__main__":
         start_time,
         dt.now(),
     )
+
+    # QC plots
+    N = traces.shape[0]
+    if N:
+        session_data = get_metadata(input_dir, "session.json")
+        frame_rate = get_frame_rate(session_data)
+        fig_path = output_dir / "plots"
+        os.makedirs(fig_path, exist_ok=True)
+        with Pool(int(tmp) if (tmp := os.environ.get("CO_CPUS")) else tmp) as pool:
+            pool.starmap(
+                plot_dff,
+                zip(
+                    traces,
+                    baseline,
+                    dff_traces,
+                    [frame_rate] * N,
+                    [f"{n:0{len(str(N))}d}" for n in range(N)],
+                    [fig_path] * N,
+                    [experiment_id] * N,
+                ),
+            )

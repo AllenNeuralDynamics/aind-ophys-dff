@@ -395,6 +395,8 @@ if __name__ == "__main__":
     name = data_description_data.get("name", "")
     subject_data = get_metadata(input_dir, "subject.json")
     subject_id = subject_data.get("subject_id", "")
+    session_data = get_metadata(input_dir, "session.json")
+    frame_rate = get_frame_rate(session_data)
     setup_logging("aind-ophys-dff", subject_id=subject_id, asset_name=name)
     extraction_dir = next(input_dir.rglob("*/extraction"))
     unique_id = extraction_dir.parent.name
@@ -409,6 +411,7 @@ if __name__ == "__main__":
             traces,
             long_window=args.long_window,
             short_window=args.short_window,
+            fs=frame_rate,
             inactive_percentile=args.inactive_percentile,
             noise_method=args.noise_method,
         )
@@ -435,8 +438,6 @@ if __name__ == "__main__":
     # QC plots
     N = traces.shape[0]
     if N:
-        session_data = get_metadata(input_dir, "session.json")
-        frame_rate = get_frame_rate(session_data)
         fig_path = output_dir / "plots"
         os.makedirs(fig_path, exist_ok=True)
         with Pool(int(tmp) if (tmp := os.environ.get("CO_CPUS")) else tmp) as pool:

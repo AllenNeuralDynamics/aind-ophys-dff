@@ -2,7 +2,8 @@ import argparse
 import json
 import logging
 import os
-from datetime import datetime as dt, timezone
+from datetime import datetime as dt
+from datetime import timezone
 from pathlib import Path
 from typing import Union
 
@@ -13,12 +14,10 @@ from aind_data_schema.components.wrappers import AssetPath
 from aind_data_schema.core.processing import DataProcess, ProcessStage
 from aind_data_schema_models.process_names import ProcessName
 from aind_log_utils.log import setup_logging
+from aind_metadata_manager.utils import get_metadata
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from scipy.stats import skew
-from aind_metadta_manager.utils import (
-    get_metadata
-    )
 
 
 class DFFSettings(BaseSettings, cli_parse_args=True):

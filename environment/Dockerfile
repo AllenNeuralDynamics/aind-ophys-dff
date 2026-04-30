@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 ENV PIPELINE_URL="https://codeocean.allenneuraldynamics.org/capsule/5619253/tree"
 ENV PIPELINE_VERSION="1.0"
-ENV VERSION="3.0"
+ENV VERSION="6.0"
 
 ARG GIT_ASKPASS
 ARG GIT_ACCESS_TOKEN
@@ -18,8 +18,10 @@ RUN pip3 install -U --no-cache-dir \
     torch --index-url https://download.pytorch.org/whl/cpu
 
 RUN pip3 install -U --no-cache-dir \
-    aind-ophys-utils==0.0.7 \
-    aind-data-schema==1.1.0 \
+    aind-ophys-utils \
+    aind-data-schema==1.2.0 \
     aind-log-utils \
-    pydantic \
+    aind-qcportal-schema \
+    matplotlib \
+    pydantic==2.8.2 \
     pydantic_settings

@@ -16,6 +16,9 @@ from aind_log_utils.log import setup_logging
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from scipy.stats import skew
+from aind_metadta_manager.utils import (
+    get_metadata
+    )
 
 
 class DFFSettings(BaseSettings, cli_parse_args=True):
@@ -100,67 +103,6 @@ def write_data_process(
         json.dump(json.loads(data_proc.model_dump_json()), f, indent=4)
 
 
-def get_metadata(input_dir: Path, meta_type: str) -> dict:
-    """Extracts metadata from processing and subject json files
-
-    Parameters
-    ----------
-    input_dir: Path
-        input directory
-    meta_type: str
-        type of metadata to extract
-
-    Returns
-    -------
-    metadata: dict
-        metadata
-    """
-    input_fp = next(input_dir.rglob(f"{meta_type}"), "")
-    if not input_fp:
-        raise FileNotFoundError(f"No {meta_type} file found in {input_dir}")
-    with open(input_fp, "r") as f:
-        metadata = json.load(f)
-    return metadata
-
-
-def get_schema_major_version(data_description: dict) -> str:
-    """Determine aind-data-schema major version from data_description.json.
-
-    Parameters
-    ----------
-    data_description: dict
-        parsed contents of data_description.json
-
-    Returns
-    -------
-    version: str
-        "v2" if schema_version starts with "2.", "v1" otherwise (including missing).
-    """
-    schema_version = data_description.get("schema_version", "") or ""
-    if schema_version.startswith("2."):
-        return "v2"
-    return "v1"
-
-
-def get_acquisition_metadata(input_dir: Path, version: str) -> dict:
-    """Load acquisition.json (aind-data-schema v2) or session.json (v1).
-
-    Parameters
-    ----------
-    input_dir: Path
-        input directory
-    version: str
-        "v2" → load acquisition.json, "v1" → load session.json
-
-    Returns
-    -------
-    metadata: dict
-        parsed json contents
-    """
-    filename = "acquisition.json" if version == "v2" else "session.json"
-    return get_metadata(input_dir, filename)
-
-
 def make_output_directory(output_dir: Path, experiment_id: str) -> str:
     """Creates the output directory if it does not exist
 
@@ -190,8 +132,6 @@ if __name__ == "__main__":
     input_dir = args.input_dir
     output_dir = args.output_dir
     data_description_data = get_metadata(input_dir, "data_description.json")
-    schema_version = get_schema_major_version(data_description_data)
-    acquisition_data = get_acquisition_metadata(input_dir, schema_version)
     name = data_description_data.get("name", "")
     experimenters = [
         i["name"] if isinstance(i, dict) else i

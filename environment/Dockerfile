@@ -19,7 +19,7 @@ RUN pip3 install -U --no-cache-dir \
 
 RUN pip3 install -U --no-cache-dir \
     aind-ophys-utils==0.0.7 \
-    aind-data-schema==1.1.0 \
+    aind-data-schema>=2.0.0,<3.0.0 \
     aind-log-utils \
     pydantic \
     pydantic_settings

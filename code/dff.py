@@ -2,13 +2,16 @@ import argparse
 import json
 import logging
 import os
-from datetime import datetime as dt
+from datetime import datetime as dt, timezone
 from pathlib import Path
 from typing import Union
 
 import aind_ophys_utils.dff as dff
 import h5py
-from aind_data_schema.core.processing import DataProcess, ProcessName
+from aind_data_schema.components.identifiers import Code, DataAsset
+from aind_data_schema.components.wrappers import AssetPath
+from aind_data_schema.core.processing import DataProcess, ProcessStage
+from aind_data_schema_models.process_names import ProcessName
 from aind_log_utils.log import setup_logging
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -50,6 +53,8 @@ def write_data_process(
     metadata: dict,
     input_fp: Union[str, Path],
     output_fp: Union[str, Path],
+    output_root: Path,
+    experimenters: list,
     unique_id: str,
     start_time: dt,
     end_time: dt,
@@ -64,6 +69,10 @@ def write_data_process(
         path to raw movies
     output_fp: str
         path to motion corrected movies
+    output_root: Path
+        metadata root directory; output_path is recorded relative to this
+    experimenters: list
+        names of experimenters responsible for processing
     unique_id: str
         unique identifier
     start_time: dt
@@ -71,21 +80,23 @@ def write_data_process(
     end_time: dt
         end time of processing
     """
+    output_fp = Path(output_fp)
+    relative_output = output_fp.relative_to(output_root)
     data_proc = DataProcess(
-        name=ProcessName.DF_F_ESTIMATION,
-        software_version=os.getenv("VERSION", ""),
-        start_date_time=start_time.isoformat(),
-        end_date_time=end_time.isoformat(),
-        input_location=str(input_fp),
-        output_location=str(output_fp),
-        code_url=(os.getenv("REPO_URL", "")),
-        parameters=metadata,
+        process_type=ProcessName.DF_F_ESTIMATION,
+        stage=ProcessStage.PROCESSING,
+        experimenters=experimenters,
+        code=Code(
+            url=os.getenv("REPO_URL", ""),
+            version=os.getenv("VERSION", ""),
+            parameters=metadata,
+            input_data=[DataAsset(url=str(input_fp))],
+        ),
+        start_date_time=start_time,
+        end_date_time=end_time,
+        output_path=AssetPath(relative_output.as_posix()),
     )
-    if isinstance(output_fp, str):
-        output_dir = Path(output_fp).parent
-    else:
-        output_dir = output_fp.parent
-    with open(output_dir / f"{unique_id}_df_f_data_process.json", "w") as f:
+    with open(output_fp.parent / f"{unique_id}_df_f_data_process.json", "w") as f:
         json.dump(json.loads(data_proc.model_dump_json()), f, indent=4)
 
 
@@ -136,12 +147,16 @@ def make_output_directory(output_dir: Path, experiment_id: str) -> str:
 
 
 if __name__ == "__main__":
-    start_time = dt.now()
+    start_time = dt.now(timezone.utc)
     args = DFFSettings()
     input_dir = args.input_dir
     output_dir = args.output_dir
     data_description_data = get_metadata(input_dir, "data_description.json")
     name = data_description_data.get("name", "")
+    experimenters = [
+        i["name"] if isinstance(i, dict) else i
+        for i in data_description_data.get("investigators", []) or []
+    ]
     subject_data = get_metadata(input_dir, "subject.json")
     subject_id = subject_data.get("subject_id", "")
     setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
@@ -176,7 +191,9 @@ if __name__ == "__main__":
         input_params,
         extraction_fp,
         output_dir / "dff.h5",
+        args.output_dir,
+        experimenters,
         experiment_id,
         start_time,
-        dt.now(),
+        dt.now(timezone.utc),
     )

@@ -13,7 +13,7 @@ from aind_data_schema.components.identifiers import Code, DataAsset
 from aind_data_schema.components.wrappers import AssetPath
 from aind_data_schema.core.processing import DataProcess, ProcessStage
 from aind_data_schema_models.process_names import ProcessName
-from aind_log_utils.log import setup_logging
+from logging_util import setup_logging
 from aind_metadata_manager.utils import get_metadata
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -136,9 +136,13 @@ if __name__ == "__main__":
         i["name"] if isinstance(i, dict) else i
         for i in data_description_data.get("investigators", []) or []
     ]
-    subject_data = get_metadata(input_dir, "subject.json")
-    subject_id = subject_data.get("subject_id", "")
-    setup_logging("aind-ophys-dff", mouse_id=subject_id, session_name=name)
+    process_name = os.getenv("PROCESS_NAME")
+    setup_logging(
+        process_name,
+        acquisition_name=name,
+        process_name=process_name,
+        pipeline_name=os.getenv("PIPELINE_NAME", ""),
+    )
     extraction_dir = next(input_dir.rglob("*/extraction"))
     experiment_id = extraction_dir.parent.name
     logging.info(f"Calculating dF/F for ExperimentID {experiment_id}")

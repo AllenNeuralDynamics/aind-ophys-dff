@@ -73,17 +73,6 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
         env_prefix = "DFF_"
 
 
-def load_timestamps(extraction_fp: Path, n_frames: int) -> Optional[np.ndarray]:
-    """Return per-frame timestamps if available, else None.
-
-    TODO: implement once a per-frame timestamp source is settled
-    (candidate locations: extraction.h5 dataset, session.json).
-    For now always returns None — the library falls back to uniform
-    spacing from ``fs``.
-    """
-    return None
-
-
 def _jsonify_log(roi_idx: int, log: dict) -> dict:
     """Convert a per-ROI triexp log to a JSON-safe dict.
 
@@ -506,10 +495,9 @@ if __name__ == "__main__":
     with h5py.File(extraction_fp, "r") as f:
         traces = f["traces/corrected"][()]
     if len(traces):
-        ts = load_timestamps(extraction_fp, traces.shape[1])
         n_jobs = int(os.environ.get("CO_CPUS") or -1)
         dff_traces, baseline, noise, params_arr, logs, config_snapshot = compute_dff(
-            traces, args, frame_rate, ts, n_jobs,
+            traces, args, frame_rate, None, n_jobs,
         )
     else:  # no ROIs detected
         dff_traces, baseline, noise = traces, traces, np.asarray([])

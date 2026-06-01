@@ -1,0 +1,40 @@
+{
+	"version": 1,
+	"base_image": "codeocean/jupyterlab:3.4.4-miniconda4.12.0-python3.9-ubuntu20.04",
+	"options": {
+		"registry_host_arg": true,
+		"git_ask_pass": true,
+		"mount_secrets": true
+	},
+	"installers": {
+		"pip3": {
+			"packages": [
+				{
+					"name": "aind-data-schema",
+					"version": "1.2.0"
+				},
+				{
+					"name": "aind-log-utils"
+				},
+				{
+					"name": "aind-ophys-utils"
+				},
+				{
+					"name": "aind-qcportal-schema"
+				},
+				{
+					"name": "matplotlib"
+				},
+				{
+					"name": "pydantic",
+					"version": "2.8.2"
+				},
+				{
+					"name": "pydantic-settings"
+				}
+			],
+			"options": {},
+			"pre_install_options": {}
+		}
+	}
+}

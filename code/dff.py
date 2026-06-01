@@ -51,7 +51,7 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
         ),
     )
 
-    # Legacy (percentile) parameters — read only when method == 'percentile'.
+    # Percentile parameters — read only when method == 'percentile'.
     long_window: float = Field(
         default=60.0,
         description="Percentile baseline window (s). Used only when method='percentile'.",
@@ -123,9 +123,9 @@ def compute_dff(
     frame_rate : float
         Sampling frequency (Hz).
     ts : (T,) ndarray or None
-        Per-frame timestamps (s). Used only by triexp; ignored by legacy.
+        Per-frame timestamps (s). Used only by triexp; ignored by percentile.
     n_jobs : int
-        Worker count. ``-1`` uses all CPUs (joblib semantics). The legacy
+        Worker count. ``-1`` uses all CPUs (joblib semantics). The percentile
         path translates ``<= 0`` to ``None`` for ``multiprocessing.Pool``.
 
     Returns
@@ -133,9 +133,9 @@ def compute_dff(
     dff_traces : (N, T) ndarray
     baseline : (N, T) ndarray
     noise : (N,) ndarray or scalar
-    params : (N, 7) ndarray (triexp) or (0, 7) ndarray (legacy)
-    logs : list[dict] (triexp) or None (legacy)
-    config_snapshot : dict (triexp) or None (legacy)
+    params : (N, 7) ndarray (triexp) or (0, 7) ndarray (percentile)
+    logs : list[dict] (triexp) or None (percentile)
+    config_snapshot : dict (triexp) or None (percentile)
     """
     if settings.method == "triexp":
         config = dff_triexp.set_dff_config(traces, fs=frame_rate, ts=ts)
@@ -144,7 +144,7 @@ def compute_dff(
         )
         return dff_traces, baseline, noise, params_arr, logs, config.params
 
-    legacy_n_jobs = n_jobs if n_jobs and n_jobs > 0 else None
+    percentile_n_jobs = n_jobs if n_jobs and n_jobs > 0 else None
     dff_traces, baseline, noise = dff_exponential.dff(
         traces,
         long_window=settings.long_window,
@@ -152,7 +152,7 @@ def compute_dff(
         fs=frame_rate,
         inactive_percentile=settings.inactive_percentile,
         noise_method=settings.noise_method,
-        n_jobs=legacy_n_jobs,
+        n_jobs=percentile_n_jobs,
     )
     params_arr = np.empty((0, 7), dtype=np.float64)
     return dff_traces, baseline, noise, params_arr, None, None

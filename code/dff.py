@@ -4,9 +4,10 @@ import os
 from datetime import datetime as dt
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 import h5py
+from aind_ophys_utils import dff as dff_exponential
 from aind_ophys_utils import dff_triexp
 import matplotlib
 
@@ -41,6 +42,31 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
     output_dir: Path = Field(
         default="/results",
         description="Output directory where results are saved",
+    )
+    method: Literal["triexp", "percentile"] = Field(
+        default="triexp",
+        description=(
+            "dF/F algorithm: 'triexp' (parametric biexp_bright_v1 fit) or "
+            "'percentile' (rolling-percentile baseline)."
+        ),
+    )
+
+    # Legacy (percentile) parameters — read only when method == 'percentile'.
+    long_window: float = Field(
+        default=60.0,
+        description="Percentile baseline window (s). Used only when method='percentile'.",
+    )
+    short_window: float = Field(
+        default=3.333,
+        description="Short detrending window (s). Used only when method='percentile'.",
+    )
+    inactive_percentile: int = Field(
+        default=10,
+        description="Inactive percentile for F0. Used only when method='percentile'.",
+    )
+    noise_method: str = Field(
+        default="mad",
+        description="Noise estimator ('mad'|'fft'|'welch'). Used only when method='percentile'.",
     )
 
     class Config:
@@ -77,6 +103,59 @@ def _jsonify_log(roi_idx: int, log: dict) -> dict:
         return v
 
     return {"roi": roi_idx, **{k: _val(v) for k, v in log.items()}}
+
+
+def compute_dff(
+    traces: np.ndarray,
+    settings: "DFFSettings",
+    frame_rate: float,
+    ts: Optional[np.ndarray],
+    n_jobs: int,
+) -> tuple:
+    """Dispatch to the selected dF/F algorithm; return a uniform 6-tuple.
+
+    Parameters
+    ----------
+    traces : (N, T) ndarray
+        Neuropil-corrected fluorescence traces.
+    settings : DFFSettings
+        Parsed capsule settings; ``settings.method`` selects the algorithm.
+    frame_rate : float
+        Sampling frequency (Hz).
+    ts : (T,) ndarray or None
+        Per-frame timestamps (s). Used only by triexp; ignored by legacy.
+    n_jobs : int
+        Worker count. ``-1`` uses all CPUs (joblib semantics). The legacy
+        path translates ``<= 0`` to ``None`` for ``multiprocessing.Pool``.
+
+    Returns
+    -------
+    dff_traces : (N, T) ndarray
+    baseline : (N, T) ndarray
+    noise : (N,) ndarray or scalar
+    params : (N, 7) ndarray (triexp) or (0, 7) ndarray (legacy)
+    logs : list[dict] (triexp) or None (legacy)
+    config_snapshot : dict (triexp) or None (legacy)
+    """
+    if settings.method == "triexp":
+        config = dff_triexp.set_dff_config(traces, fs=frame_rate, ts=ts)
+        dff_traces, baseline, noise, params_arr, logs = dff_triexp.dff(
+            traces, config, n_jobs=n_jobs,
+        )
+        return dff_traces, baseline, noise, params_arr, logs, config.params
+
+    legacy_n_jobs = n_jobs if n_jobs and n_jobs > 0 else None
+    dff_traces, baseline, noise = dff_exponential.dff(
+        traces,
+        long_window=settings.long_window,
+        short_window=settings.short_window,
+        fs=frame_rate,
+        inactive_percentile=settings.inactive_percentile,
+        noise_method=settings.noise_method,
+        n_jobs=legacy_n_jobs,
+    )
+    params_arr = np.empty((0, 7), dtype=np.float64)
+    return dff_traces, baseline, noise, params_arr, None, None
 
 
 def write_data_process(
@@ -428,15 +507,14 @@ if __name__ == "__main__":
         traces = f["traces/corrected"][()]
     if len(traces):
         ts = load_timestamps(extraction_fp, traces.shape[1])
-        config = dff_triexp.set_dff_config(traces, fs=frame_rate, ts=ts)
         n_jobs = int(os.environ.get("CO_CPUS") or -1)
-        dff_traces, baseline, noise, params_arr, logs = dff_triexp.dff(
-            traces, config, n_jobs=n_jobs,
+        dff_traces, baseline, noise, params_arr, logs, config_snapshot = compute_dff(
+            traces, args, frame_rate, ts, n_jobs,
         )
-        config_snapshot = config.params
     else:  # no ROIs detected
         dff_traces, baseline, noise = traces, traces, np.asarray([])
-        params_arr, logs, config_snapshot = None, None, None
+        params_arr = np.empty((0, 7), dtype=np.float64)
+        logs, config_snapshot = None, None
 
     skewness = skew(dff_traces, axis=1)
     with h5py.File(output_dir / f"{unique_id}_dff.h5", "w") as f:
@@ -444,16 +522,17 @@ if __name__ == "__main__":
         f.create_dataset("baseline", data=baseline)
         f.create_dataset("noise", data=noise)
         f.create_dataset("skewness", data=skewness)
-        if params_arr is not None:
-            f.create_dataset("params", data=params_arr)
-            f.attrs["params_order"] = (
-                "b_inf,b_slow,b_fast,b_bright,t_slow,t_fast,t_bright"
-            )
+        f.create_dataset("params", data=params_arr)
+        f.attrs["params_order"] = (
+            "b_inf,b_slow,b_fast,b_bright,t_slow,t_fast,t_bright"
+        )
+        f.attrs["method"] = args.method
 
-    if logs is not None:
-        logs_json = [_jsonify_log(i, lg) for i, lg in enumerate(logs)]
-        with open(output_dir / f"{unique_id}_dff_logs.json", "w") as f:
-            json.dump(logs_json, f, indent=2)
+    logs_json = (
+        [_jsonify_log(i, lg) for i, lg in enumerate(logs)] if logs is not None else []
+    )
+    with open(output_dir / f"{unique_id}_dff_logs.json", "w") as f:
+        json.dump(logs_json, f, indent=2)
 
     # Include settings + triexp config snapshot in metadata
     input_params = {**vars(args), "triexp_config": config_snapshot}
@@ -471,6 +550,7 @@ if __name__ == "__main__":
     if N:
         fig_path = output_dir / "plots"
         os.makedirs(fig_path, exist_ok=True)
+        plot_logs = logs if logs is not None else [None] * N
         with Pool(int(tmp) if (tmp := os.environ.get("CO_CPUS")) else tmp) as pool:
             pool.starmap(
                 plot_dff,
@@ -482,7 +562,7 @@ if __name__ == "__main__":
                     [f"{n:0{len(str(N))}d}" for n in range(N)],
                     [fig_path] * N,
                     [unique_id] * N,
-                    logs,
+                    plot_logs,
                 ),
             )
 

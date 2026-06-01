@@ -1,0 +1,78 @@
+{
+	"version": 1,
+	"named_parameters": true,
+	"parameters": [
+		{
+			"id": "ufPB6uzr94EjfBHt",
+			"name": "input_dir",
+			"param_name": "input_dir",
+			"description": "Input directory containing extraction.h5 and metadata files",
+			"help_text": "Input directory containing extraction.h5 and metadata files",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "/data"
+		},
+		{
+			"id": "NXNf0cS4xs323bXf",
+			"name": "output_dir",
+			"param_name": "output_dir",
+			"description": "Output directory where results are saved",
+			"help_text": "Output directory where results are saved",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "/results"
+		},
+		{
+			"id": "bcxdlIDKq6W2KZu5",
+			"name": "method",
+			"param_name": "method",
+			"description": "dF/F algorithm: 'triexp' (parametric biexp_bright_v1 fit) or 'percentile' (rolling-percentile baseline).",
+			"help_text": "dF/F algorithm: 'triexp' (parametric biexp_bright_v1 fit) or 'percentile' (rolling-percentile baseline).",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "triexp",
+			"required": true,
+			"pattern": "^(triexp|percentile)$"
+		},
+		{
+			"id": "aw9QZnClYTI0T1HH",
+			"name": "long_window",
+			"param_name": "long_window",
+			"description": "Percentile baseline window (s). Used only when method='percentile'.",
+			"help_text": "Percentile baseline window (s). Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "number",
+			"default_value": "60.0"
+		},
+		{
+			"id": "DKFaPXGGEuWRoZlI",
+			"name": "short_window",
+			"param_name": "short_window",
+			"description": "Short detrending window (s). Used only when method='percentile'.",
+			"help_text": "Short detrending window (s). Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "number",
+			"default_value": "3.333"
+		},
+		{
+			"id": "kiXGnDqubIZNKKaH",
+			"name": "inactive_percentile",
+			"param_name": "inactive_percentile",
+			"description": "Inactive percentile for F0. Used only when method='percentile'.",
+			"help_text": "Inactive percentile for F0. Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "integer",
+			"default_value": "10"
+		},
+		{
+			"id": "rxBEipNDLTMEEHMV",
+			"name": "noise_method",
+			"param_name": "noise_method",
+			"description": "Noise estimator ('mad'|'fft'|'welch'). Used only when method='percentile'.",
+			"help_text": "Noise estimator ('mad'|'fft'|'welch'). Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "mad"
+		}
+	]
+}

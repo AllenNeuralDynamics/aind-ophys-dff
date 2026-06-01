@@ -4,10 +4,11 @@ import os
 from datetime import datetime as dt
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union
+from typing import Literal, Optional, Union
 
-import aind_ophys_utils.dff as dff
 import h5py
+from aind_ophys_utils import dff as dff_exponential
+from aind_ophys_utils import dff_triexp
 import matplotlib
 
 matplotlib.use("Agg")
@@ -32,38 +33,116 @@ from scipy.stats import skew
 
 
 class DFFSettings(BaseSettings, cli_parse_args=True):
-    """Settings for DF/F calculation parameters"""
+    """Settings for dF/F calculation."""
 
     input_dir: Path = Field(
         default="/data",
-        description="Input directory containing raw movies and metadata files",
+        description="Input directory containing extraction.h5 and metadata files",
     )
     output_dir: Path = Field(
-        default="/results", description="Output director where to save results to"
+        default="/results",
+        description="Output directory where results are saved",
     )
-    long_window: int = Field(
-        default=60,
-        description="Moving window size (in seconds) of the rolling percentile filter "
-        "used to compute a rolling baseline",
+    method: Literal["triexp", "percentile"] = Field(
+        default="triexp",
+        description=(
+            "dF/F algorithm: 'triexp' (parametric biexp_bright_v1 fit) or "
+            "'percentile' (rolling-percentile baseline)."
+        ),
+    )
+
+    # Percentile parameters — read only when method == 'percentile'.
+    long_window: float = Field(
+        default=60.0,
+        description="Percentile baseline window (s). Used only when method='percentile'.",
     )
     short_window: float = Field(
         default=3.333,
-        description="Moving window size (in seconds) of the median filter to compute the rolling "
-        "median-filtered signal, which is subtracted from the input 'F' for noise_method=mad",
+        description="Short detrending window (s). Used only when method='percentile'.",
     )
     inactive_percentile: int = Field(
         default=10,
-        description="Percentile value that defines the inactive frames used for calculating "
-        "the baseline",
+        description="Inactive percentile for F0. Used only when method='percentile'.",
     )
     noise_method: str = Field(
         default="mad",
-        description="Method for computing the noise, see ..signal_utils.noise_std "
-        "Choices: 'mad', 'fft', 'welch'",
+        description="Noise estimator ('mad'|'fft'|'welch'). Used only when method='percentile'.",
     )
 
     class Config:
         env_prefix = "DFF_"
+
+
+def _jsonify_log(roi_idx: int, log: dict) -> dict:
+    """Convert a per-ROI triexp log to a JSON-safe dict.
+
+    Tuple keys (``(c_pos, c_neg)``) become ``"c_pos_c_neg"`` strings;
+    ndarrays become lists; tuple values become lists.
+    """
+    def _key(k):
+        return f"{k[0]}_{k[1]}" if isinstance(k, tuple) else k
+
+    def _val(v):
+        if isinstance(v, np.ndarray):
+            return v.tolist()
+        if isinstance(v, dict):
+            return {_key(k): _val(vv) for k, vv in v.items()}
+        if isinstance(v, tuple):
+            return list(v)
+        return v
+
+    return {"roi": roi_idx, **{k: _val(v) for k, v in log.items()}}
+
+
+def compute_dff(
+    traces: np.ndarray,
+    settings: "DFFSettings",
+    frame_rate: float,
+    ts: Optional[np.ndarray],
+    n_jobs: int,
+) -> tuple:
+    """Dispatch to the selected dF/F algorithm; return a uniform 5-tuple.
+
+    Parameters
+    ----------
+    traces : (N, T) ndarray
+        Neuropil-corrected fluorescence traces.
+    settings : DFFSettings
+        Parsed capsule settings; ``settings.method`` selects the algorithm.
+    frame_rate : float
+        Sampling frequency (Hz).
+    ts : (T,) ndarray or None
+        Per-frame timestamps (s). Used only by triexp; ignored by percentile.
+    n_jobs : int
+        Worker count. ``-1`` uses all CPUs (joblib semantics). The percentile
+        path translates ``<= 0`` to ``None`` for ``multiprocessing.Pool``.
+
+    Returns
+    -------
+    dff_traces : (N, T) ndarray
+    baseline : (N, T) ndarray
+    noise : (N,) ndarray or scalar
+    logs : list[dict] (triexp) or None (percentile)
+    config_snapshot : dict (triexp) or None (percentile)
+    """
+    if settings.method == "triexp":
+        config = dff_triexp.set_dff_config(traces, fs=frame_rate, ts=ts)
+        dff_traces, baseline, noise, _params, logs = dff_triexp.dff(
+            traces, config, n_jobs=n_jobs,
+        )
+        return dff_traces, baseline, noise, logs, config.params
+
+    percentile_n_jobs = n_jobs if n_jobs and n_jobs > 0 else None
+    dff_traces, baseline, noise = dff_exponential.dff(
+        traces,
+        long_window=settings.long_window,
+        short_window=settings.short_window,
+        fs=frame_rate,
+        inactive_percentile=settings.inactive_percentile,
+        noise_method=settings.noise_method,
+        n_jobs=percentile_n_jobs,
+    )
+    return dff_traces, baseline, noise, None, None
 
 
 def write_data_process(
@@ -189,6 +268,7 @@ def plot_dff(
     roi_id: int,
     fig_path: Union[str, Path],
     unique_id: str,
+    log: Optional[dict] = None,
     zoom_duration: float = 60.0,
 ) -> None:
     """Plot raw and dF/F traces with optional zoomed insets.
@@ -333,7 +413,14 @@ def plot_dff(
     ax[dff_idx].set_xlim(tmin - margin, tmax + margin)
     plt.setp(ax[raw_idx].get_xticklabels(), visible=False)
     ax[dff_idx].set_xlabel("Time [s]")
-    ax[0].set_title(f"cell_roi_id: {int(roi_id)}")
+    title = f"cell_roi_id: {int(roi_id)}"
+    if log is not None:
+        title += (
+            f"  (n_passes={log.get('n_passes')}, "
+            f"winner={log.get('winner_combo')}, "
+            f"trigger={log.get('pass1_trigger')})"
+        )
+    ax[0].set_title(title)
     plt.subplots_adjust(hspace=0.1, top=0.935, bottom=0.13, left=0.06, right=0.995)
     fig.savefig(
         fig_path / f"{unique_id}_{roi_id}_dff.png",
@@ -406,17 +493,14 @@ if __name__ == "__main__":
     with h5py.File(extraction_fp, "r") as f:
         traces = f["traces/corrected"][()]
     if len(traces):
-        # Pass settings parameters to the dff function
-        dff_traces, baseline, noise = dff.dff(
-            traces,
-            long_window=args.long_window,
-            short_window=args.short_window,
-            fs=frame_rate,
-            inactive_percentile=args.inactive_percentile,
-            noise_method=args.noise_method,
+        n_jobs = int(os.environ.get("CO_CPUS") or -1)
+        dff_traces, baseline, noise, logs, config_snapshot = compute_dff(
+            traces, args, frame_rate, None, n_jobs,
         )
     else:  # no ROIs detected
-        dff_traces, baseline, noise = traces, traces, []
+        dff_traces, baseline, noise = traces, traces, np.asarray([])
+        logs, config_snapshot = None, None
+
     skewness = skew(dff_traces, axis=1)
     with h5py.File(output_dir / f"{unique_id}_dff.h5", "w") as f:
         f.create_dataset("data", data=dff_traces)
@@ -424,8 +508,14 @@ if __name__ == "__main__":
         f.create_dataset("noise", data=noise)
         f.create_dataset("skewness", data=skewness)
 
-    # Include settings in metadata
-    input_params = {**vars(args)}
+    logs_json = (
+        [_jsonify_log(i, lg) for i, lg in enumerate(logs)] if logs is not None else []
+    )
+    with open(output_dir / f"{unique_id}_dff_logs.json", "w") as f:
+        json.dump(logs_json, f, indent=2)
+
+    # Include settings + triexp config snapshot in metadata
+    input_params = {**vars(args), "triexp_config": config_snapshot}
     write_data_process(
         input_params,
         extraction_fp,
@@ -440,6 +530,7 @@ if __name__ == "__main__":
     if N:
         fig_path = output_dir / "plots"
         os.makedirs(fig_path, exist_ok=True)
+        plot_logs = logs if logs is not None else [None] * N
         with Pool(int(tmp) if (tmp := os.environ.get("CO_CPUS")) else tmp) as pool:
             pool.starmap(
                 plot_dff,
@@ -451,6 +542,7 @@ if __name__ == "__main__":
                     [f"{n:0{len(str(N))}d}" for n in range(N)],
                     [fig_path] * N,
                     [unique_id] * N,
+                    plot_logs,
                 ),
             )
 

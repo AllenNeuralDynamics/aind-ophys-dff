@@ -70,6 +70,16 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
         description="Noise estimator ('mad'|'fft'|'welch'). Used only when method='percentile'.",
     )
 
+    # Triexp parameters — read only when method == 'triexp'.
+    triexp_config_overrides: str = Field(
+        default="{}",
+        description=(
+            "JSON object of overrides for set_dff_config. Keys must be a subset of "
+            "set_dff_config's keyword arguments; any key omitted falls back to the "
+            "function's default. Used only when method='triexp'."
+        ),
+    )
+
     class Config:
         env_prefix = "DFF_"
 
@@ -77,6 +87,32 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
 def _jsonify_log(roi_idx: int, log: dict) -> dict:
     """Wrap library.log_to_jsonable with this capsule's per-ROI identity prefix."""
     return {"roi": roi_idx, **log_to_jsonable(log)}
+
+
+def _parse_triexp_overrides(raw: str) -> dict:
+    """Parse and validate the --triexp-config-overrides JSON string.
+
+    Returns a dict of validated overrides to splat into ``set_dff_config``.
+    Fails fast on invalid JSON, non-object root, or unknown keys.
+    """
+    import inspect
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"triexp_config_overrides is not valid JSON: {e}") from e
+    if not isinstance(parsed, dict):
+        raise ValueError(
+            f"triexp_config_overrides must be a JSON object, got {type(parsed).__name__}"
+        )
+    allowed = set(inspect.signature(set_dff_config).parameters) - {"F", "fs", "ts"}
+    unknown = set(parsed) - allowed
+    if unknown:
+        raise ValueError(
+            f"triexp_config_overrides contains unknown keys: {sorted(unknown)}. "
+            f"Allowed: {sorted(allowed)}"
+        )
+    return parsed
 
 
 def compute_dff(
@@ -111,7 +147,8 @@ def compute_dff(
     config_snapshot : dict (triexp) or None (percentile)
     """
     if settings.method == "triexp":
-        config = set_dff_config(traces, fs=frame_rate, ts=ts)
+        overrides = _parse_triexp_overrides(settings.triexp_config_overrides)
+        config = set_dff_config(traces, fs=frame_rate, ts=ts, **overrides)
         dff_traces, baseline, noise, _params, logs = triexp_dff(
             traces, config, n_jobs=n_jobs,
         )

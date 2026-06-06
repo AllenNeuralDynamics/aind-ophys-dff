@@ -1,27 +1,18 @@
-FROM registry.codeocean.allenneuraldynamics.org/codeocean/jupyterlab:3.4.4-miniconda4.12.0-python3.9-ubuntu20.04
+# hash:sha256:f67347c957c7255aa24456ff785b6e67abd1234d75c9b8b6e5713846f1130196
+ARG REGISTRY_HOST
+FROM $REGISTRY_HOST/codeocean/mambaforge3:24.5.0-0-python3.12.4-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-
-ENV PIPELINE_URL="https://codeocean.allenneuraldynamics.org/capsule/5619253/tree"
-ENV PIPELINE_VERSION="1.0"
-ENV VERSION="6.0"
-
 ARG GIT_ASKPASS
-ARG GIT_ACCESS_TOKEN
-COPY git-askpass /
+COPY git-ask-pass /
 
-ENV DFF_EXTRACTION_URL=https://github.com/AllenNeuralDynamics/aind-ophys-dff
-
-RUN ["apt-get", "update"]
-RUN ["apt-get", "install", "-y", "vim"]
-RUN pip3 install -U --no-cache-dir \
-    torch --index-url https://download.pytorch.org/whl/cpu
-
-RUN pip3 install -U --no-cache-dir \
-    aind-ophys-utils \
+RUN --mount=type=secret,id=git-access-token \
+    GIT_ACCESS_TOKEN="$(cat /run/secrets/git-access-token)" \
+    pip3 install -U --no-cache-dir \
     aind-data-schema==1.2.0 \
-    aind-log-utils \
-    aind-qcportal-schema \
-    matplotlib \
-    pydantic==2.8.2 \
-    pydantic_settings
+    aind-data-schema-models==0.7.5 \
+    aind-log-utils==0.2.8 \
+    aind-qcportal-schema==0.4.0 \
+    matplotlib==3.10.9 \
+    pydantic-settings==2.14.1 \
+    -e git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@780483d#egg=aind-ophys-dff-library

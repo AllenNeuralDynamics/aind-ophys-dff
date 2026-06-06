@@ -1,0 +1,86 @@
+{
+	"version": 1,
+	"named_parameters": true,
+	"parameters": [
+		{
+			"id": "2GUPc68dpMCEBb48",
+			"name": "input_dir",
+			"param_name": "input_dir",
+			"description": "Input directory containing extraction.h5 and metadata files",
+			"help_text": "Input directory containing extraction.h5 and metadata files",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "/data"
+		},
+		{
+			"id": "RWcEtjRIlMKAqv7J",
+			"name": "output_dir",
+			"param_name": "output_dir",
+			"description": "Output directory where results are saved",
+			"help_text": "Output directory where results are saved",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "/results"
+		},
+		{
+			"id": "eNZ7oLeyljLDKj2Y",
+			"name": "method",
+			"param_name": "method",
+			"description": "dF/F algorithm: 'triexp' (parametric 3-pass triexponential baseline fit) or 'percentile' (rolling-percentile baseline).",
+			"help_text": "dF/F algorithm: 'triexp' (parametric 3-pass triexponential baseline fit) or 'percentile' (rolling-percentile baseline).",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "triexp"
+		},
+		{
+			"id": "hC6ZVy5TEQtP1TrP",
+			"name": "long_window",
+			"param_name": "long_window",
+			"description": "Percentile baseline window (s). Used only when method='percentile'.",
+			"help_text": "Percentile baseline window (s). Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "number",
+			"default_value": "60.0"
+		},
+		{
+			"id": "FjJ885QCIcGIkE8R",
+			"name": "short_window",
+			"param_name": "short_window",
+			"description": "Short detrending window (s). Used only when method='percentile'.",
+			"help_text": "Short detrending window (s). Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "number",
+			"default_value": "3.333"
+		},
+		{
+			"id": "FOILX3lBsjXMEy73",
+			"name": "inactive_percentile",
+			"param_name": "inactive_percentile",
+			"description": "Inactive percentile for F0. Used only when method='percentile'.",
+			"help_text": "Inactive percentile for F0. Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "integer",
+			"default_value": "10"
+		},
+		{
+			"id": "z06qCPVDuvo6TrIy",
+			"name": "noise_method",
+			"param_name": "noise_method",
+			"description": "Noise estimator ('mad'|'fft'|'welch'). Used only when method='percentile'.",
+			"help_text": "Noise estimator ('mad'|'fft'|'welch'). Used only when method='percentile'.",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "mad"
+		},
+		{
+			"id": "NjwZobYP2UCQBNt0",
+			"name": "triexp_config_overrides",
+			"param_name": "triexp_config_overrides",
+			"description": "JSON object of overrides for set_dff_config. Keys must be a subset of set_dff_config's keyword arguments; any key omitted falls back to the function's default. Used only when method='triexp'.",
+			"help_text": "JSON object of overrides for set_dff_config. Keys must be a subset of set_dff_config's keyword arguments; any key omitted falls back to the function's default. Used only when method='triexp'.",
+			"type": "text",
+			"value_type": "string",
+			"default_value": "{}"
+		}
+	]
+}

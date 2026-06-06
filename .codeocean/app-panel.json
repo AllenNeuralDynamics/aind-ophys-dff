@@ -30,7 +30,9 @@
 			"help_text": "dF/F algorithm: 'triexp' (parametric 3-pass triexponential baseline fit) or 'percentile' (rolling-percentile baseline).",
 			"type": "text",
 			"value_type": "string",
-			"default_value": "triexp"
+			"default_value": "triexp",
+			"required": true,
+			"pattern": "^(triexp|percentile)$"
 		},
 		{
 			"id": "hC6ZVy5TEQtP1TrP",

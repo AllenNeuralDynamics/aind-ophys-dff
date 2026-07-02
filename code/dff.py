@@ -71,11 +71,22 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
     )
 
     # Triexp parameters — read only when method == 'triexp'.
+    sigma_anneal_steps: int = Field(
+        default=4,
+        description=(
+            "IRLS sigma-annealing steps (aind_ophys_utils.baseline_fitting."
+            "nonlinear_fit). 1 or 2 disable annealing (single-jump); 3 "
+            "enables one intermediate step; 4 (default) uses two; higher "
+            "graduates further but exceeds the internal maxiter=5. Used "
+            "only when method='triexp'."
+        ),
+    )
     triexp_config_overrides: str = Field(
         default="{}",
         description=(
             "JSON object of overrides for set_dff_config. Keys must be a subset of "
-            "set_dff_config's keyword arguments; any key omitted falls back to the "
+            "set_dff_config's keyword arguments (except sigma_anneal_steps, which "
+            "has its own dedicated field above); any key omitted falls back to the "
             "function's default. Used only when method='triexp'."
         ),
     )
@@ -105,7 +116,11 @@ def _parse_triexp_overrides(raw: str) -> dict:
         raise ValueError(
             f"triexp_config_overrides must be a JSON object, got {type(parsed).__name__}"
         )
-    allowed = set(inspect.signature(set_dff_config).parameters) - {"F", "fs", "ts"}
+    # Exclude positional args + fields exposed as dedicated DFFSettings knobs
+    # (dedicated fields are authoritative; JSON blob must not shadow them).
+    allowed = set(inspect.signature(set_dff_config).parameters) - {
+        "F", "fs", "ts", "sigma_anneal_steps",
+    }
     unknown = set(parsed) - allowed
     if unknown:
         raise ValueError(
@@ -148,7 +163,11 @@ def compute_dff(
     """
     if settings.method == "triexp":
         overrides = _parse_triexp_overrides(settings.triexp_config_overrides)
-        config = set_dff_config(traces, fs=frame_rate, ts=ts, **overrides)
+        config = set_dff_config(
+            traces, fs=frame_rate, ts=ts,
+            sigma_anneal_steps=settings.sigma_anneal_steps,
+            **overrides,
+        )
         dff_traces, baseline, noise, _params, logs = triexp_dff(
             traces, config, n_jobs=n_jobs,
         )

@@ -30,9 +30,7 @@
 			"help_text": "dF/F algorithm: 'triexp' (parametric 3-pass triexponential baseline fit) or 'percentile' (rolling-percentile baseline).",
 			"type": "text",
 			"value_type": "string",
-			"default_value": "triexp",
-			"required": true,
-			"pattern": "^(triexp|percentile)$"
+			"default_value": "triexp"
 		},
 		{
 			"id": "hC6ZVy5TEQtP1TrP",
@@ -75,11 +73,21 @@
 			"default_value": "mad"
 		},
 		{
+			"id": "pB790fmFueM8POPR",
+			"name": "sigma_anneal_steps",
+			"param_name": "sigma_anneal_steps",
+			"description": "IRLS sigma-annealing steps (aind_ophys_utils.baseline_fitting.nonlinear_fit). 1 or 2 disable annealing (single-jump); 3 enables one intermediate step; 4 (default) uses two; higher graduates further but exceeds the internal maxiter=5. Used only when method='triexp'.",
+			"help_text": "IRLS sigma-annealing steps (aind_ophys_utils.baseline_fitting.nonlinear_fit). 1 or 2 disable annealing (single-jump); 3 enables one intermediate step; 4 (default) uses two; higher graduates further but exceeds the internal maxiter=5. Used only when method='triexp'.",
+			"type": "text",
+			"value_type": "integer",
+			"default_value": "4"
+		},
+		{
 			"id": "NjwZobYP2UCQBNt0",
 			"name": "triexp_config_overrides",
 			"param_name": "triexp_config_overrides",
-			"description": "JSON object of overrides for set_dff_config. Keys must be a subset of set_dff_config's keyword arguments; any key omitted falls back to the function's default. Used only when method='triexp'.",
-			"help_text": "JSON object of overrides for set_dff_config. Keys must be a subset of set_dff_config's keyword arguments; any key omitted falls back to the function's default. Used only when method='triexp'.",
+			"description": "JSON object of overrides for set_dff_config. Keys must be a subset of set_dff_config's keyword arguments (except sigma_anneal_steps, which has its own dedicated field above); any key omitted falls back to the function's default. Used only when method='triexp'.",
+			"help_text": "JSON object of overrides for set_dff_config. Keys must be a subset of set_dff_config's keyword arguments (except sigma_anneal_steps, which has its own dedicated field above); any key omitted falls back to the function's default. Used only when method='triexp'.",
 			"type": "text",
 			"value_type": "string",
 			"default_value": "{}"

@@ -26,7 +26,7 @@
 					"version": "0.4.0"
 				},
 				{
-					"name": "git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@ec58c11#egg=aind-ophys-dff-library"
+					"name": "git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@a97565e#egg=aind-ophys-dff-library"
 				},
 				{
 					"name": "matplotlib",

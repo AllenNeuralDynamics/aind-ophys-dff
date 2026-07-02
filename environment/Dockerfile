@@ -1,4 +1,4 @@
-# hash:sha256:e24aa9c3acda75aaef7999a8707af42f0d6586a56f4b15f76e93f6f85de2d94b
+# hash:sha256:43af8f77acd8b40d1897074089d28f12880db4f692f40dc2982c9590e5810a5b
 ARG REGISTRY_HOST
 FROM $REGISTRY_HOST/codeocean/mambaforge3:24.5.0-0-python3.12.4-ubuntu22.04
 
@@ -15,4 +15,4 @@ RUN --mount=type=secret,id=git-access-token \
     aind-qcportal-schema==0.4.0 \
     matplotlib==3.10.9 \
     pydantic-settings==2.14.1 \
-    -e git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@ec58c11#egg=aind-ophys-dff-library
+    -e git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@a97565e#egg=aind-ophys-dff-library

@@ -72,13 +72,13 @@ class DFFSettings(BaseSettings, cli_parse_args=True):
 
     # Triexp parameters — read only when method == 'triexp'.
     sigma_anneal_steps: int = Field(
-        default=4,
+        default=1,
         description=(
             "IRLS sigma-annealing steps (aind_ophys_utils.baseline_fitting."
-            "nonlinear_fit). 1 or 2 disable annealing (single-jump); 3 "
-            "enables one intermediate step; 4 (default) uses two; higher "
-            "graduates further but exceeds the internal maxiter=5. Used "
-            "only when method='triexp'."
+            "nonlinear_fit). 1 (default) or 2 disable annealing "
+            "(single-jump); 3 enables one intermediate step; 4 uses two; "
+            "higher graduates further but exceeds the internal maxiter=5. "
+            "Used only when method='triexp'."
         ),
     )
     triexp_config_overrides: str = Field(

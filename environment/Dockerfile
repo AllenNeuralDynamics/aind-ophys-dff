@@ -15,7 +15,8 @@ ENV DFF_EXTRACTION_URL=https://github.com/AllenNeuralDynamics/aind-ophys-dff
 
 RUN pip3 install -U --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu \
-    aind-ophys-utils \
+    # aind-ophys-utils \
+    git+https://github.com/AllenNeuralDynamics/aind-ophys-utils.git@plot-dff-style  \
     aind-data-schema==1.2.0 \
     aind-log-utils \
     aind-qcportal-schema \

@@ -132,7 +132,7 @@ def compute_dff(
     traces: np.ndarray,
     settings: "DFFSettings",
     frame_rate: float,
-    ts: Optional[np.ndarray],
+    ts: np.ndarray | None,
     n_jobs: int,
 ) -> tuple:
     """Dispatch to the selected dF/F algorithm; return a uniform 5-tuple.

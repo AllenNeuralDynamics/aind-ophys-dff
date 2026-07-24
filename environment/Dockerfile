@@ -13,16 +13,18 @@ COPY git-ask-pass /
 
 ENV DFF_EXTRACTION_URL=https://github.com/AllenNeuralDynamics/aind-ophys-dff
 
-RUN --mount=type=secret,id=git-access-token \
-    GIT_ACCESS_TOKEN="$(cat /run/secrets/git-access-token)" \
-    pip3 install -U --no-cache-dir \
+RUN pip3 install -U --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu \
-    # aind-ophys-utils \
-    git+https://github.com/AllenNeuralDynamics/aind-ophys-utils.git@plot-dff-style  \
+    git+https://github.com/AllenNeuralDynamics/aind-ophys-utils.git@fix/percentile-filter-negative-size \
     aind-data-schema==1.2.0 \
     aind-data-schema-models==0.7.5 \
     aind-log-utils==0.2.8 \
     aind-qcportal-schema==0.4.0 \
     matplotlib==3.10.9 \
     pydantic-settings==2.14.1 \
+    joblib
+
+RUN --mount=type=secret,id=git-access-token \
+    GIT_ACCESS_TOKEN="$(cat /run/secrets/git-access-token)" \
+    pip3 install --no-cache-dir --no-deps \
     -e git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@v0.1.0#egg=aind-ophys-dff-library

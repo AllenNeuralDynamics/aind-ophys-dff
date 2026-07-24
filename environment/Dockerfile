@@ -1,18 +1,30 @@
-# hash:sha256:c9937fdf4903ca5b6b1c314fe3e02282f1686c25472e5d795f6ced4b1f96fdf3
+# hash:sha256:0e951733d816fe6b42cbaffc702a88a983e354f0131ce0b6bc1ec64499b500e5
 ARG REGISTRY_HOST
 FROM $REGISTRY_HOST/codeocean/mambaforge3:24.5.0-0-python3.12.4-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+ENV PIPELINE_URL="https://codeocean.allenneuraldynamics.org/capsule/5619253/tree"
+ENV VERSION="6.0"
+
 ARG GIT_ASKPASS
+ARG GIT_ACCESS_TOKEN
 COPY git-ask-pass /
 
-RUN --mount=type=secret,id=git-access-token \
-    GIT_ACCESS_TOKEN="$(cat /run/secrets/git-access-token)" \
-    pip3 install -U --no-cache-dir \
+ENV DFF_EXTRACTION_URL=https://github.com/AllenNeuralDynamics/aind-ophys-dff
+
+RUN pip3 install -U --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    git+https://github.com/AllenNeuralDynamics/aind-ophys-utils.git@fix/percentile-filter-negative-size \
     aind-data-schema==1.2.0 \
     aind-data-schema-models==0.7.5 \
     aind-log-utils==0.2.8 \
     aind-qcportal-schema==0.4.0 \
     matplotlib==3.10.9 \
     pydantic-settings==2.14.1 \
+    joblib
+
+RUN --mount=type=secret,id=git-access-token \
+    GIT_ACCESS_TOKEN="$(cat /run/secrets/git-access-token)" \
+    pip3 install --no-cache-dir --no-deps \
     -e git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@v0.1.0#egg=aind-ophys-dff-library

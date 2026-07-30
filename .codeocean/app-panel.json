@@ -33,6 +33,15 @@
 			"default_value": "triexp"
 		},
 		{
+			"id": "Ydv2YMz3y2sfAMNM",
+			"name": "frame_rate",
+			"param_name": "frame_rate",
+			"description": "Frame rate [Hz] fallback used only when it cannot be read from acquisition/session/platform metadata.",
+			"help_text": "Frame rate [Hz] fallback used only when it cannot be read from acquisition/session/platform metadata.",
+			"type": "text",
+			"value_type": "number"
+		},
+		{
 			"id": "hC6ZVy5TEQtP1TrP",
 			"name": "long_window",
 			"param_name": "long_window",
@@ -91,6 +100,26 @@
 			"type": "text",
 			"value_type": "string",
 			"default_value": "{}"
+		},
+		{
+			"id": "Hmh7zIQMEupsnS4s",
+			"name": "zoom_duration",
+			"param_name": "zoom_duration",
+			"description": "Duration [s] of each zoomed inset in the per-ROI QC plot. Set to 0 for a plain two-panel plot with no insets.",
+			"help_text": "Duration [s] of each zoomed inset in the per-ROI QC plot. Set to 0 for a plain two-panel plot with no insets.",
+			"type": "text",
+			"value_type": "number",
+			"default_value": "60.0"
+		},
+		{
+			"id": "NLN14jmkUkPsZRAY",
+			"name": "verify",
+			"param_name": "verify",
+			"description": "Round-trip the emitted processing.json / quality_control.json through the core v2 schema objects after writing, so bad output fails in-capsule rather than downstream.",
+			"help_text": "Round-trip the emitted processing.json / quality_control.json through the core v2 schema objects after writing, so bad output fails in-capsule rather than downstream.",
+			"type": "text",
+			"value_type": "integer",
+			"default_value": "0"
 		}
 	]
 }

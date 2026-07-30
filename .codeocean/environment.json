@@ -10,31 +10,7 @@
 		"pip3": {
 			"packages": [
 				{
-					"name": "aind-data-schema",
-					"version": "1.2.0"
-				},
-				{
-					"name": "aind-data-schema-models",
-					"version": "0.7.5"
-				},
-				{
-					"name": "aind-log-utils",
-					"version": "0.2.8"
-				},
-				{
-					"name": "aind-qcportal-schema",
-					"version": "0.4.0"
-				},
-				{
-					"name": "git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@v0.1.0#egg=aind-ophys-dff-library"
-				},
-				{
-					"name": "matplotlib",
-					"version": "3.10.9"
-				},
-				{
-					"name": "pydantic-settings",
-					"version": "2.14.1"
+					"name": "git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@30adece1357e90fc36418003f0661a6225788851#egg=aind-ophys-dff-library"
 				}
 			],
 			"options": {},

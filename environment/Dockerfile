@@ -1,14 +1,10 @@
-FROM registry.codeocean.allenneuraldynamics.org/codeocean/jupyterlab:3.4.4-miniconda4.12.0-python3.9-ubuntu20.04
-
+FROM python:3.9-slim
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV PIPELINE_URL="https://codeocean.allenneuraldynamics.org/capsule/5619253/tree"
 ENV PIPELINE_VERSION="1.0"
 ENV VERSION="6.0"
 
-ARG GIT_ASKPASS
-ARG GIT_ACCESS_TOKEN
-COPY git-askpass /
 
 ENV DFF_EXTRACTION_URL=https://github.com/AllenNeuralDynamics/aind-ophys-dff
 
@@ -25,3 +21,6 @@ RUN pip3 install -U --no-cache-dir \
     matplotlib \
     pydantic==2.8.2 \
     pydantic_settings
+
+RUN mkdir -p /data /results /scratch /capsule/code
+COPY code/ /capsule/code

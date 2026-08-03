@@ -10,7 +10,7 @@
 		"pip3": {
 			"packages": [
 				{
-					"name": "git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@30adece1357e90fc36418003f0661a6225788851#egg=aind-ophys-dff-library"
+					"name": "git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@445fa48#egg=aind-ophys-dff-library"
 				}
 			],
 			"options": {},

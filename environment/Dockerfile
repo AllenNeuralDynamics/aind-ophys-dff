@@ -1,4 +1,4 @@
-# hash:sha256:11bb2515c4f444f53796ede1f1f289beda597ec839a06c306532f0bb23673731
+# hash:sha256:8569098a7b7a47cb3a53e5efd1793eec5fdfcb3cbe5bf52696ffe84c71837fae
 ARG REGISTRY_HOST
 FROM $REGISTRY_HOST/codeocean/mambaforge3:24.5.0-0-python3.12.4-ubuntu22.04
 
@@ -9,4 +9,4 @@ COPY git-ask-pass /
 RUN --mount=type=secret,id=git-access-token \
     GIT_ACCESS_TOKEN="$(cat /run/secrets/git-access-token)" \
     pip3 install -U --no-cache-dir \
-    -e git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@5f90814#egg=aind-ophys-dff-library
+    -e git+https://github.com/AllenNeuralDynamics/aind-ophys-dff-library.git@8913538#egg=aind-ophys-dff-library
